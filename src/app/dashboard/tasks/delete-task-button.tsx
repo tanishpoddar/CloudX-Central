@@ -13,55 +13,37 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash, Trash2 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Trash } from "lucide-react";
 
 interface DeleteTaskButtonProps {
-  taskId: string;
-  asIcon?: boolean;
+  formAction: () => void;
 }
 
-export default function DeleteTaskButton({ taskId, asIcon = false }: DeleteTaskButtonProps) {
-
-  const triggerButton = asIcon ? (
-     <TooltipProvider>
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" type="button">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-                <p>Delete Task</p>
-            </TooltipContent>
-        </Tooltip>
-    </TooltipProvider>
-  ) : (
-    <Button variant="destructive" size="sm" type="button">
-        <Trash className="mr-2 h-4 w-4" />
-        Delete Task
-    </Button>
-  );
-
+export default function DeleteTaskButton({ formAction }: DeleteTaskButtonProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        {triggerButton}
+        <Button variant="destructive" size="sm" type="button">
+            <Trash className="mr-2 h-4 w-4" />
+            Delete Task
+        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the task
-            and all associated logs, comments, and subtasks.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button type="submit" className="bg-destructive hover:bg-destructive/90">Continue</Button>
-          </AlertDialogAction>
-        </AlertDialogFooter>
+        <form action={formAction}>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the task
+                and all associated logs, comments, and subtasks.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction asChild>
+                <Button type="submit" className="bg-destructive hover:bg-destructive/90">Continue</Button>
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </form>
       </AlertDialogContent>
     </AlertDialog>
   );

@@ -40,7 +40,6 @@ import AddCommentForm from './add-comment-form';
 import SubtasksManager from './subtasks-manager';
 import MarkAsDoneButton from '../mark-as-done-button';
 import { Button } from '@/components/ui/button';
-import SummarizeTaskDialog from './summarize-task-dialog';
 import { deleteTask } from '../actions';
 
 interface TaskDetailsPageProps {
@@ -92,7 +91,13 @@ export default async function TaskDetailsPage({ params }: TaskDetailsPageProps) 
 
   const handleDeleteTask = async () => {
     'use server';
-    await deleteTask(task.id);
+    try {
+        await deleteTask(task.id);
+    } catch (error) {
+        console.error("Deletion failed:", error);
+        // You could optionally redirect with an error message
+        return;
+    }
     redirect('/dashboard/tasks');
   };
 
@@ -118,7 +123,6 @@ export default async function TaskDetailsPage({ params }: TaskDetailsPageProps) 
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <SummarizeTaskDialog taskId={task.id} />
             {isAssignee && task.status !== 'Done' && task.status !== 'Cancelled' && (
               <MarkAsDoneButton taskId={task.id} />
             )}
@@ -131,9 +135,7 @@ export default async function TaskDetailsPage({ params }: TaskDetailsPageProps) 
               </Button>
             )}
             {canDelete && (
-              <form action={handleDeleteTask}>
-                <DeleteTaskButton taskId={task.id} asIcon={false} />
-              </form>
+                <DeleteTaskButton formAction={handleDeleteTask} />
             )}
           </div>
         </div>
