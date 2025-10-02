@@ -1,0 +1,46 @@
+{
+  "placeholderImages": [
+    {
+      "id": "avatar-1",
+      "description": "Avatar for Sarah Lee",
+      "imageUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8d29tYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg4Njc3OTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Avatar for David Kim",
+      "imageUrl": "https://images.unsplash.com/photo-1583195763986-0231686dcd43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg5NTE1NDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Avatar for Alex Johnson, Director of Technology",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg5MDE5MzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "avatar-4",
+      "description": "Avatar for Maria Garcia, Director of Corporate",
+      "imageUrl": "https://images.unsplash.com/photo-1714415182234-0672970be61a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8d29tYW4lMjBzbWlsaW5nfGVufDB8fHx8MTc1ODg4NDI1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "avatar-5",
+      "description": "Avatar for James Smith, Director of Creatives",
+      "imageUrl": "https://images.unsplash.com/photo-1618077360395-f3068be8e001?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYW4lMjBnbGFzc2VzfGVufDB8fHx8MTc1ODkyNTA4MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man glasses"
+    },
+    {
+      "id": "avatar-6",
+      "description": "Avatar for Emily White, Dev Lead",
+      "imageUrl": "https://images.unsplash.com/photo-1549082984-1323b94df9a6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx3b21hbiUyMGRldmVsb3BlcnxlbnwwfHx8fDE3NTg5MjUzMjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman developer"
+    },
+    {
+      "id": "avatar-7",
+      "description": "Avatar for Michael Brown, UI/UX Lead",
+      "imageUrl": "https://images.unsplash.com/photo-1625622885387-7a55eb72dda0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxkZXNpZ25lciUyMG1hbnxlbnwwfHx8fDE3NTg5NTMxMDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "designer man"
+    }
+  ]
+}
