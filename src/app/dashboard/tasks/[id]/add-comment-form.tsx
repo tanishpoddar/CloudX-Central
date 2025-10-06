@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -66,7 +67,7 @@ export default function AddCommentForm({ taskId, currentUser }: { taskId: string
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
              <div className="flex items-start gap-4">
                 <Avatar className="h-10 w-10">
-                    <AvatarImage src={currentUser.avatar} />
+                    <AvatarImage src={currentUser.avatar ?? undefined} />
                     <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <FormField

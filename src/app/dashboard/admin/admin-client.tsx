@@ -80,7 +80,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
       username: '',
       email: '',
       password: '',
-      avatar: '',
+      avatar: null,
       role: 'Member',
       team: null,
       subTeam: null,
@@ -120,14 +120,14 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
     const data = templateOnly ? [] : users.map(user => {
       const userForCsv: Partial<User> = {};
       userTemplateKeys.forEach(key => {
-        userForCsv[key] = user[key] ?? '';
+        (userForCsv as any)[key] = user[key] ?? '';
       });
       return userForCsv;
     });
 
     const csv = Papa.unparse({
         fields: userTemplateKeys,
-        data: data as any,
+        data: data as any[],
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -144,18 +144,18 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      let nextIdNumber = users.reduce((max, u) => {
+          if (u.id && u.id.startsWith('user-')) {
+              const num = parseInt(u.id.split('-')[1], 10);
+              return isNaN(num) ? max : Math.max(max, num);
+          }
+          return max;
+      }, 0) + 1;
+
       Papa.parse<User>(file, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-            let nextIdNumber = users.reduce((max, u) => {
-                if (u.id && u.id.startsWith('user-')) {
-                    const num = parseInt(u.id.split('-')[1], 10);
-                    return isNaN(num) ? max : Math.max(max, num);
-                }
-                return max;
-            }, 0) + 1;
-
           const parsedUsers = results.data.map((user: any) => {
             const newUser: any = {};
             for (const key in user) {
@@ -297,7 +297,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
                   </TableCell>
                   <TableCell>
                     <Input
-                      value={user.avatar || ''}
+                      value={user.avatar ?? ''}
                       onChange={e => handleInputChange(user.id, 'avatar', e.target.value)}
                       className="w-48"
                       placeholder="Avatar Image URL (Optional)"

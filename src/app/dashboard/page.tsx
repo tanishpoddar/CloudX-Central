@@ -1,4 +1,5 @@
 
+
 import Link from 'next/link';
 import {
   Activity,
@@ -167,7 +168,7 @@ export default async function Dashboard() {
                 {enrichedAnnouncements.slice(0, 3).map(announcement => (
                     <div key={announcement.id} className="flex items-start gap-4">
                         <Avatar className="h-9 w-9">
-                            <AvatarImage src={announcement.authorAvatar} alt={announcement.authorName} />
+                            <AvatarImage src={announcement.authorAvatar ?? undefined} alt={announcement.authorName} />
                             <AvatarFallback>{announcement.authorName.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="space-y-1">
@@ -209,7 +210,7 @@ export default async function Dashboard() {
             {recentLogs.length > 0 ? recentLogs.map(log => (
                 <div key={log.id} className="flex items-center gap-4">
                     <Avatar className="hidden h-9 w-9 sm:flex">
-                        <AvatarImage src={log.userAvatar} alt="Avatar" data-ai-hint="person portrait" />
+                        <AvatarImage src={log.userAvatar ?? undefined} alt="Avatar" data-ai-hint="person portrait" />
                         <AvatarFallback>{log.userName?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="grid gap-1">

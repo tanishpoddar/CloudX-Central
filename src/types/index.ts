@@ -23,15 +23,15 @@ export interface User {
   username: string;
   password?: string;
   email: string;
-  avatar: string;
+  avatar: string | null;
   role: UserRole;
   team: Team | null;
   secondaryTeam?: Team | null;
   subTeam: SubTeam | null;
-  birthday?: string;
-  phone?: string;
-  linkedin?: string;
-  github?: string;
+  birthday?: string | null;
+  phone?: string | null;
+  linkedin?: string | null;
+  github?: string | null;
 }
 
 export type TaskStatus = 'To Do' | 'In Progress' | 'Done' | 'Cancelled';

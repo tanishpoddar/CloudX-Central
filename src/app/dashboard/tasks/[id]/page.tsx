@@ -1,3 +1,4 @@
+
 import { notFound, redirect } from 'next/navigation';
 import {
   getTaskById,
@@ -40,7 +41,6 @@ import AddCommentForm from './add-comment-form';
 import SubtasksManager from './subtasks-manager';
 import MarkAsDoneButton from '../mark-as-done-button';
 import { Button } from '@/components/ui/button';
-import { deleteTask } from '../actions';
 
 interface TaskDetailsPageProps {
   params: Promise<{
@@ -89,18 +89,6 @@ export default async function TaskDetailsPage({ params }: TaskDetailsPageProps) 
     };
   });
 
-  const handleDeleteTask = async () => {
-    'use server';
-    try {
-        await deleteTask(task.id);
-    } catch (error) {
-        console.error("Deletion failed:", error);
-        // You could optionally redirect with an error message
-        return;
-    }
-    redirect('/dashboard/tasks');
-  };
-
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <header className="space-y-2">
@@ -135,7 +123,7 @@ export default async function TaskDetailsPage({ params }: TaskDetailsPageProps) 
               </Button>
             )}
             {canDelete && (
-                <DeleteTaskButton formAction={handleDeleteTask} />
+                <DeleteTaskButton taskId={task.id} />
             )}
           </div>
         </div>
@@ -181,7 +169,7 @@ export default async function TaskDetailsPage({ params }: TaskDetailsPageProps) 
                 enrichedComments.map(comment => (
                   <div key={comment.id} className="flex items-start gap-4">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={comment.userAvatar} />
+                      <AvatarImage src={comment.userAvatar ?? undefined} />
                       <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">

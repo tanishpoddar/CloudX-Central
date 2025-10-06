@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, Search, Users, CalendarCheck, GanttChartSquare, FilePlus, Rss, Shield } from 'lucide-react';
+import { Menu, Search, Users, CalendarCheck, GanttChartSquare, FilePlus, Rss, Shield, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTr
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { logout } from '@/app/actions';
 import { Logo } from '@/components/logo';
-import type { User, UserRole, Team } from '@/types';
+import type { User, UserRole, Team, SubTeam } from '@/types';
 import { cn } from '@/lib/utils';
 import { NotificationPopover } from './notification-popover';
 import { useState, useEffect } from 'react';
@@ -33,38 +33,53 @@ const navItems = [
   { href: '/dashboard/announcements', label: 'Announcements', icon: Rss, roles: ['Co-founder', 'Secretary', 'Chair of Directors', 'Lead', 'Member'] },
   { href: '/dashboard/users', label: 'Users', icon: null, roles: ['Co-founder', 'Secretary', 'Chair of Directors', 'Lead', 'Member'] },
   { href: '/dashboard/admin', label: 'Admin', icon: Shield, roles: ['Co-founder', 'Secretary', 'Chair of Directors'] },
-  { href: '/dashboard/logs', label: 'Logs', icon: null, roles: ['Co-founder', 'Secretary', 'Chair of Directors', 'Lead', 'Member'] },
+  { href: '/dashboard/logs', label: 'Logs', icon: Activity, roles: ['Co-founder', 'Secretary', 'Chair of Directors', 'Lead', 'Member'] },
 ];
 
-const getUserTitle = (role: UserRole, team: Team | null): string => {
+const getUserTitle = (user: User): string => {
+  const { role, team, subTeam } = user;
   if (role === 'Chair of Directors' && team) {
     return `Director of ${team}`;
   }
-  if (role === 'Lead' && team) {
-    return `Lead at ${team}`;
+  if (role === 'Lead' && subTeam) {
+    const subTeamName = subTeam.replace(/-/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return `${subTeamName} Lead`;
   }
   return role;
 };
 
+
 export function Header({ user }: { user: User }) {
   const userInitials = user.name.split(' ').map((n) => n[0]).join('');
   const pathname = usePathname();
-  const userTitle = getUserTitle(user.role, user.team);
+  const userTitle = getUserTitle(user);
   const [greeting, setGreeting] = useState<{ text: string; punctuation: string }>({ text: 'Welcome Back', punctuation: '!' });
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const visibleNavItems = navItems.filter(item => item.roles.includes(user.role));
 
   useEffect(() => {
-    const currentHour = new Date().getHours();
-    if (currentHour < 12) {
-      setGreeting({ text: 'Good Morning', punctuation: '!' });
-    } else if (currentHour < 17) {
-      setGreeting({ text: 'Good Afternoon', punctuation: '!' });
-    } else if (currentHour < 21) {
-      setGreeting({ text: 'Good Evening', punctuation: '!' });
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    if (currentHour >= 6 && currentHour < 12) {
+        // 6:00 AM - 11:59 AM
+        setGreeting({ text: 'Good Morning', punctuation: '!' });
+    } else if (currentHour >= 12 && (currentHour < 16 || (currentHour === 16 && currentMinute <= 30))) {
+        // 12:00 PM - 4:30 PM
+        setGreeting({ text: 'Good Afternoon', punctuation: '!' });
+    } else if ((currentHour === 16 && currentMinute > 30) || (currentHour > 16 && currentHour < 21)) {
+        // 4:31 PM - 8:59 PM
+        setGreeting({ text: 'Good Evening', punctuation: '!' });
+    } else if (currentHour >= 21 || currentHour < 4) {
+        // 9:00 PM - 3:59 AM
+        setGreeting({ text: 'Burning the midnight oil', punctuation: '?' });
+    } else if (currentHour >= 4 && currentHour < 6) {
+        // 4:00 AM - 5:59 AM
+        setGreeting({ text: 'Rise and shine', punctuation: '!' });
     } else {
-      setGreeting({ text: 'Burning the midnight oil', punctuation: '?' });
+        setGreeting({ text: 'Welcome Back', punctuation: '!' });
     }
   }, []);
   
@@ -170,7 +185,7 @@ export function Header({ user }: { user: User }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
                     <AvatarFallback>{userInitials}</AvatarFallback>
                   </Avatar>
                   <span className="sr-only">Toggle user menu</span>

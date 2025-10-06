@@ -25,10 +25,7 @@ async function createNotification(
   link: string,
   taskId?: string
 ) {
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
-  await adminDb.collection('notifications').add({
+  await adminDb!.collection('notifications').add({
     userId,
     actorId,
     type,
@@ -42,9 +39,7 @@ async function createNotification(
 
 export async function addBulkIndividualTasks(data: FormData) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) {
-    throw new Error("You must be logged in to add tasks.");
-  }
+  if (!currentUser) throw new Error("You must be logged in to add tasks.");
 
   const rawData = {
     title: data.get('title') || '',
@@ -64,16 +59,12 @@ export async function addBulkIndividualTasks(data: FormData) {
   const { title, description, assignedToIds, dueDate, links } = validatedFields.data;
   const isUrgent = differenceInHours(dueDate, new Date()) < 30;
 
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
+  const batch = adminDb!.batch();
+  const tasksCollection = adminDb!.collection("tasks");
+  const notificationsCollection = adminDb!.collection("notifications");
+  const logsCollection = adminDb!.collection("logs");
 
-  const batch = adminDb.batch();
-  const tasksCollection = adminDb.collection("tasks");
-  const notificationsCollection = adminDb.collection("notifications");
-  const logsCollection = adminDb.collection("logs");
-
-  const assigneesSnapshot = await adminDb.collection('users').where(FieldPath.documentId(), 'in', assignedToIds).get();
+  const assigneesSnapshot = await adminDb!.collection('users').where(FieldPath.documentId(), 'in', assignedToIds).get();
   const assigneeNames = assigneesSnapshot.docs.map(doc => doc.data().name).join(', ');
   const logMessage = `${currentUser.name} assigned "${title}" to ${assigneeNames} as individual tasks.`;
   const logRef = logsCollection.doc();
@@ -81,7 +72,6 @@ export async function addBulkIndividualTasks(data: FormData) {
     message: logMessage,
     timestamp: new Date().toISOString(),
     userId: currentUser.id,
-    // No single taskId for bulk operation log
   });
 
   for (const assigneeId of assignedToIds) {
@@ -99,7 +89,6 @@ export async function addBulkIndividualTasks(data: FormData) {
     };
     batch.set(taskRef, newTask);
 
-    // Create notification
     if (assigneeId !== currentUser.id) {
       const notifRef = notificationsCollection.doc();
       const notifMessage = `<strong>${currentUser.name}</strong> assigned a new task to you: <strong>${title}</strong>`;
@@ -134,9 +123,7 @@ export async function addBulkIndividualTasks(data: FormData) {
 
 export async function addTask(data: FormData) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) {
-    throw new Error("You must be logged in to add a task.");
-  }
+  if (!currentUser) throw new Error("You must be logged in to add a task.");
 
   if (currentUser.role === 'Member' && (data.getAll('assignedToIds[]') as string[]).some(id => id !== currentUser.id)) {
     throw new Error("You can only assign tasks to yourself.");
@@ -159,12 +146,7 @@ export async function addTask(data: FormData) {
     }
 
     const { title, description, assignedToIds, dueDate, links } = validatedFields.data;
-
     const isUrgent = differenceInHours(dueDate, new Date()) < 30;
-
-    if (!adminDb) {
-      throw new Error('Database not initialized.');
-    }
 
     const newTask = {
       title,
@@ -178,10 +160,9 @@ export async function addTask(data: FormData) {
       urgent: isUrgent,
     };
 
-    const docRef = await adminDb.collection("tasks").add(newTask);
+    const docRef = await adminDb!.collection("tasks").add(newTask);
     console.log("Successfully created task with ID:", docRef.id);
 
-    // Create notifications for all assignees
     const notifMessage = `<strong>${currentUser.name}</strong> assigned a new task to you: <strong>${newTask.title}</strong>`;
     for (const assigneeId of assignedToIds) {
       if (assigneeId !== currentUser.id) {
@@ -196,21 +177,18 @@ export async function addTask(data: FormData) {
       }
     }
 
-    // Log message
     if (assignedToIds.length > 0) {
-      const assigneesSnapshot = await adminDb.collection('users').where(FieldPath.documentId(), 'in', assignedToIds).get();
+      const assigneesSnapshot = await adminDb!.collection('users').where(FieldPath.documentId(), 'in', assignedToIds).get();
       const assigneeNames = assigneesSnapshot.docs.map(doc => doc.data().name).join(', ');
 
       const logMessage = `${currentUser.name} assigned "${newTask.title}" to ${assigneeNames}.`;
-      await adminDb.collection('logs').add({
+      await adminDb!.collection('logs').add({
         message: logMessage,
         timestamp: new Date().toISOString(),
         userId: currentUser.id,
         taskId: docRef.id,
       });
     }
-
-
   } catch (error) {
     console.error("Failed to create task:", error);
     if (error instanceof Error && !error.message.includes('NEXT_REDIRECT')) {
@@ -227,28 +205,18 @@ export async function addTask(data: FormData) {
 
 export async function updateTask(taskId: string, data: FormData) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) {
-    throw new Error("You must be logged in to edit a task.");
-  }
+  if (!currentUser) throw new Error("You must be logged in to edit a task.");
 
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
-
-  const taskRef = adminDb.collection("tasks").doc(taskId);
+  const taskRef = adminDb!.collection("tasks").doc(taskId);
   const taskDoc = await taskRef.get();
 
-  if (!taskDoc.exists) {
-    throw new Error("Task not found.");
-  }
+  if (!taskDoc.exists) throw new Error("Task not found.");
   const task = taskDoc.data();
 
   const isAssigner = task?.assignedById === currentUser.id;
   const isPresidium = currentUser.role === 'Co-founder' || currentUser.role === 'Secretary';
 
-  if (!isAssigner && !isPresidium) {
-    throw new Error("You do not have permission to edit this task.");
-  }
+  if (!isAssigner && !isPresidium) throw new Error("You do not have permission to edit this task.");
 
   try {
     const rawData = {
@@ -260,14 +228,12 @@ export async function updateTask(taskId: string, data: FormData) {
     };
 
     const validatedFields = taskSchema.safeParse(rawData);
-
     if (!validatedFields.success) {
       console.error('Validation Errors:', validatedFields.error.flatten().fieldErrors);
       throw new Error("Invalid fields provided.");
     }
 
     const { title, description, assignedToIds, dueDate, links } = validatedFields.data;
-
     const isUrgent = differenceInHours(dueDate, new Date()) < 30;
 
     const updatedTask = {
@@ -282,7 +248,7 @@ export async function updateTask(taskId: string, data: FormData) {
     await taskRef.update(updatedTask);
 
     const logMessage = `${currentUser.name} edited the task "${updatedTask.title}".`;
-    await adminDb.collection('logs').add({
+    await adminDb!.collection('logs').add({
       message: logMessage,
       timestamp: new Date().toISOString(),
       userId: currentUser.id,
@@ -306,67 +272,62 @@ export async function updateTask(taskId: string, data: FormData) {
 
 export async function deleteTask(taskId: string) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) {
-    throw new Error("You must be logged in to delete a task.");
-  }
+  if (!currentUser) throw new Error("You must be logged in to delete a task.");
 
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
-
-  const taskRef = adminDb.collection("tasks").doc(taskId);
+  const taskRef = adminDb!.collection("tasks").doc(taskId);
   const taskDoc = await taskRef.get();
 
-  if (!taskDoc.exists) {
-    throw new Error("Task not found.");
-  }
+  if (!taskDoc.exists) throw new Error("Task not found.");
 
   const task = taskDoc.data();
 
   const isAssigner = task?.assignedById === currentUser.id;
   const isPresidium = currentUser.role === 'Co-founder' || currentUser.role === 'Secretary';
 
-  if (!isAssigner && !isPresidium) {
-    throw new Error("You do not have permission to delete this task.");
-  }
+  if (!isAssigner && !isPresidium) throw new Error("You do not have permission to delete this task.");
 
   try {
-    await taskRef.delete();
-    console.log(`Successfully deleted task with ID: ${taskId}`);
-
     const logMessage = `${currentUser.name} deleted the task "${task?.title}".`;
-    await adminDb.collection('logs').add({
+    const batch = adminDb!.batch();
+
+    const collectionsToDelete = ['comments', 'subtasks', 'notifications'];
+    const snapshots = await Promise.all(
+      collectionsToDelete.map(collection =>
+        adminDb!.collection(collection).where("taskId", "==", taskId).get()
+      )
+    );
+
+    snapshots.forEach(snapshot => {
+      snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    });
+
+    batch.delete(taskRef);
+
+    const logRef = adminDb!.collection('logs').doc();
+    batch.set(logRef, {
       message: logMessage,
       timestamp: new Date().toISOString(),
       userId: currentUser.id,
-      // TaskId is not added here as the task is deleted
     });
 
-    const collectionsToDelete = ['comments', 'subtasks', 'notifications'];
-    for (const collection of collectionsToDelete) {
-      const snapshot = await adminDb.collection(collection).where("taskId", "==", taskId).get();
-      if (!snapshot.empty) {
-        const batch = adminDb.batch();
-        snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-        await batch.commit();
-        console.log(`Deleted ${snapshot.size} associated documents from ${collection}.`);
-      }
-    }
+    await batch.commit();
+    console.log(`Successfully deleted task ${taskId} and all associated data.`);
   } catch (error) {
-    console.error("Failed to delete task:", error);
-    if (error instanceof Error && !error.message.includes('NEXT_REDIRECT')) {
-      throw new Error(error.message);
+    console.error("Failed to delete task and its sub-collections:", error);
+    if (error instanceof Error) {
+      if (!error.message.includes('NEXT_REDIRECT')) {
+        throw error;
+      }
+    } else {
+      throw new Error("An unknown error occurred while deleting the task.");
     }
-    throw new Error("An unknown error occurred while deleting the task.");
   }
 
   revalidatePath("/dashboard/tasks");
-  revalidatePath("/dashboard/logs");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/my-week");
   revalidatePath("/dashboard/tasks/board");
+  revalidatePath("/dashboard/logs");
 }
 
 const updateStatusSchema = z.object({
@@ -376,44 +337,31 @@ const updateStatusSchema = z.object({
 
 export async function updateTaskStatus(formData: FormData) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) {
-    throw new Error("You must be logged in.");
-  }
+  if (!currentUser) throw new Error("You must be logged in.");
 
   const validatedFields = updateStatusSchema.safeParse({
     taskId: formData.get('taskId'),
     status: formData.get('status'),
   });
 
-  if (!validatedFields.success) {
-    throw new Error("Invalid data provided.");
-  }
+  if (!validatedFields.success) throw new Error("Invalid data provided.");
 
   const { taskId, status } = validatedFields.data;
 
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
-
-  const taskRef = adminDb.collection("tasks").doc(taskId);
+  const taskRef = adminDb!.collection("tasks").doc(taskId);
   const taskDoc = await taskRef.get();
 
-  if (!taskDoc.exists) {
-    throw new Error("Task not found.");
-  }
+  if (!taskDoc.exists) throw new Error("Task not found.");
 
   const task = taskDoc.data();
-  if (!task?.assignedToIds.includes(currentUser.id)) {
-    throw new Error("You do not have permission to update this task's status.");
-  }
-
+  if (!task?.assignedToIds.includes(currentUser.id)) throw new Error("You do not have permission to update this task's status.");
   const oldStatus = task.status;
 
   try {
     await taskRef.update({ status: status });
 
     const logMessage = `${currentUser.name} updated the status of "${task.title}" from "${oldStatus}" to "${status}".`;
-    await adminDb.collection('logs').add({
+    await adminDb!.collection('logs').add({
       message: logMessage,
       timestamp: new Date().toISOString(),
       userId: currentUser.id,
@@ -432,11 +380,10 @@ export async function updateTaskStatus(formData: FormData) {
       );
     }
 
-    // If task is done or cancelled, remove all notifications for it.
     if (status === 'Done' || status === 'Cancelled') {
-      const notificationsSnapshot = await adminDb.collection('notifications').where('taskId', '==', taskId).get();
+      const notificationsSnapshot = await adminDb!.collection('notifications').where('taskId', '==', taskId).get();
       if (!notificationsSnapshot.empty) {
-        const batch = adminDb.batch();
+        const batch = adminDb!.batch();
         notificationsSnapshot.docs.forEach(doc => {
           batch.delete(doc.ref);
         });
@@ -466,9 +413,7 @@ const addLinkSchema = z.object({
 
 export async function addLink(formData: FormData) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) {
-    throw new Error("You must be logged in.");
-  }
+  if (!currentUser) throw new Error("You must be logged in.");
 
   const validatedFields = addLinkSchema.safeParse({
     taskId: formData.get('taskId'),
@@ -482,21 +427,13 @@ export async function addLink(formData: FormData) {
 
   const { taskId, link } = validatedFields.data;
 
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
-
-  const taskRef = adminDb.collection("tasks").doc(taskId);
+  const taskRef = adminDb!.collection("tasks").doc(taskId);
   const taskDoc = await taskRef.get();
 
-  if (!taskDoc.exists) {
-    throw new Error("Task not found.");
-  }
+  if (!taskDoc.exists) throw new Error("Task not found.");
   const task = taskDoc.data();
 
-  if (!task?.assignedToIds.includes(currentUser.id)) {
-    throw new Error("You do not have permission to add links to this task.");
-  }
+  if (!task?.assignedToIds.includes(currentUser.id)) throw new Error("You do not have permission to add links to this task.");
 
   try {
     await taskRef.update({
@@ -504,7 +441,7 @@ export async function addLink(formData: FormData) {
     });
 
     const logMessage = `${currentUser.name} added a link to "${task.title}".`;
-    await adminDb.collection('logs').add({
+    await adminDb!.collection('logs').add({
       message: logMessage,
       timestamp: new Date().toISOString(),
       userId: currentUser.id,
@@ -528,26 +465,18 @@ const addCommentSchema = z.object({
 
 export async function addComment(formData: FormData) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) {
-    throw new Error("You must be logged in.");
-  }
+  if (!currentUser) throw new Error("You must be logged in.");
 
   const validatedFields = addCommentSchema.safeParse({
     taskId: formData.get('taskId'),
     comment: formData.get('comment'),
   });
 
-  if (!validatedFields.success) {
-    throw new Error("Invalid comment data.");
-  }
+  if (!validatedFields.success) throw new Error("Invalid comment data.");
 
   const { taskId, comment } = validatedFields.data;
 
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
-
-  const taskRef = adminDb.collection("tasks").doc(taskId);
+  const taskRef = adminDb!.collection("tasks").doc(taskId);
   const taskDoc = await taskRef.get();
   if (!taskDoc.exists) throw new Error("Task not found.");
   const task = taskDoc.data();
@@ -560,19 +489,18 @@ export async function addComment(formData: FormData) {
     createdAt: new Date().toISOString(),
   };
 
-  await adminDb.collection('comments').add(commentData);
+  await adminDb!.collection('comments').add(commentData);
 
   const logMessage = `${currentUser.name} commented on "${task.title}".`;
-  await adminDb.collection('logs').add({
+  await adminDb!.collection('logs').add({
     message: logMessage,
     timestamp: new Date().toISOString(),
     userId: currentUser.id,
     taskId: taskId,
   });
 
-  // Notify assigner and other assignees
   const recipientIds = new Set([task.assignedById, ...task.assignedToIds]);
-  recipientIds.delete(currentUser.id); // Don't notify the commenter
+  recipientIds.delete(currentUser.id);
 
   for (const recipientId of recipientIds) {
     const notifMessage = `<strong>${currentUser.name}</strong> left a comment on <strong>${task.title}</strong>`;
@@ -594,15 +522,11 @@ export async function addSubtask(taskId: string, title: string): Promise<Subtask
   const currentUser = await getCurrentUser();
   if (!currentUser) throw new Error("You must be logged in.");
 
-  if (!adminDb) throw new Error('Database not initialized.');
-
-  const taskRef = adminDb.collection("tasks").doc(taskId);
+  const taskRef = adminDb!.collection("tasks").doc(taskId);
   const taskDoc = await taskRef.get();
-  if (!taskDoc.exists || !taskDoc.data()?.assignedToIds.includes(currentUser.id)) {
-    throw new Error("You do not have permission to modify this task.");
-  }
+  if (!taskDoc.exists || !taskDoc.data()?.assignedToIds.includes(currentUser.id)) throw new Error("You do not have permission to modify this task.");
 
-  const subtasksRef = adminDb.collection('subtasks');
+  const subtasksRef = adminDb!.collection('subtasks');
   const snapshot = await subtasksRef.where('taskId', '==', taskId).get();
   const order = snapshot.size;
 
@@ -623,33 +547,25 @@ export async function toggleSubtask(subtaskId: string, isCompleted: boolean) {
   const currentUser = await getCurrentUser();
   if (!currentUser) throw new Error("You must be logged in.");
 
-  if (!adminDb) throw new Error('Database not initialized.');
-
-  const subtaskRef = adminDb.collection('subtasks').doc(subtaskId);
-  // Add permission check if needed
+  const subtaskRef = adminDb!.collection('subtasks').doc(subtaskId);
   await subtaskRef.update({ isCompleted });
 
-  revalidatePath(`/dashboard/tasks/${(await subtaskRef.get()).data()?.taskId}`);
+  const subtaskDoc = await subtaskRef.get();
+  const subtaskData = subtaskDoc.data();
+  if (subtaskData?.taskId) revalidatePath(`/dashboard/tasks/${subtaskData.taskId}`);
 }
 
 export async function updateSubtaskOrder(taskId: string, subtaskOrder: string[]) {
   const currentUser = await getCurrentUser();
   if (!currentUser) throw new Error("You must be logged in.");
 
-  if (!adminDb) throw new Error('Database not initialized.');
-
-  const taskRef = adminDb.collection("tasks").doc(taskId);
+  const taskRef = adminDb!.collection("tasks").doc(taskId);
   const taskDoc = await taskRef.get();
-  if (!taskDoc.exists || !taskDoc.data()?.assignedToIds.includes(currentUser.id)) {
-    throw new Error("You do not have permission to modify this task.");
-  }
+  if (!taskDoc.exists || !taskDoc.data()?.assignedToIds.includes(currentUser.id)) throw new Error("You do not have permission to modify this task.");
 
-  const batch = adminDb.batch();
+  const batch = adminDb!.batch();
   subtaskOrder.forEach((subtaskId, index) => {
-    if (!adminDb) {
-          throw new Error('Database not initialized.');
-    }
-    const subtaskRef = adminDb.collection('subtasks').doc(subtaskId);
+    const subtaskRef = adminDb!.collection('subtasks').doc(subtaskId);
     batch.update(subtaskRef, { order: index });
   });
 

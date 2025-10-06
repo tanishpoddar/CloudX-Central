@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useMemo, useTransition, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import {
   DragDropContext,
-  Droppable,
-  Draggable,
   DropResult,
 } from '@hello-pangea/dnd';
 import type { Task, User, TaskStatus } from '@/types';
@@ -14,11 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 import { getSubordinates } from '@/lib/hierarchy';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
-type AssigneeInfo = { name: string; avatar?: string };
+type AssigneeInfo = { name: string; avatar?: string | undefined };
 
 type EnrichedTask = Task & { 
-    assignees: AssigneeInfo[];
+  assignees: AssigneeInfo[];
 };
 
 type ColumnData = {
@@ -32,7 +29,6 @@ type BoardState = {
   columns: Record<TaskStatus, ColumnData>;
   columnOrder: TaskStatus[];
 };
-
 
 export default function KanbanBoard({
   initialTasks,
@@ -60,24 +56,27 @@ export default function KanbanBoard({
         const subordinateIds = await getSubordinates(id, users);
         const teamMemberIds = new Set([id, ...subordinateIds]);
         visibleTasks = initialTasks.filter(task => 
-            task.assignedToIds?.some(assigneeId => teamMemberIds.has(assigneeId)) || task.assignedById === id
+          task.assignedToIds?.some(assigneeId => teamMemberIds.has(assigneeId)) || task.assignedById === id
         );
       }
       
       const enrichedTasks = visibleTasks.map(task => {
-          const assignees = users
-              .filter(u => task.assignedToIds?.includes(u.id))
-              .map(u => ({ name: u.name, avatar: u.avatar }));
-          
-          return {
-              ...task,
-              assignees: assignees.length > 0 ? assignees : [{ name: 'Unassigned', avatar: '' }],
-          }
+        const assignees = users
+          .filter(u => task.assignedToIds?.includes(u.id))
+          .map(u => ({
+            name: u.name,
+            avatar: u.avatar ?? undefined,  // convert null to undefined here
+          }));
+        
+        return {
+          ...task,
+          assignees: assignees.length > 0 ? assignees : [{ name: 'Unassigned', avatar: undefined }],
+        };
       });
 
       const tasksById = enrichedTasks.reduce((acc, task) => {
-          acc[task.id] = task;
-          return acc;
+        acc[task.id] = task;
+        return acc;
       }, {} as Record<string, EnrichedTask>);
 
       const columns: Record<TaskStatus, ColumnData> = {
@@ -180,7 +179,6 @@ export default function KanbanBoard({
             });
         }
     });
-
   };
 
   if (!boardState) {

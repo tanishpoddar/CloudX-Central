@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -34,7 +35,7 @@ export function UserCard({ user }: { user: User }) {
         <Card className="glass h-full transition-all duration-300 ease-in-out group-hover:border-primary group-hover:shadow-lg group-hover:-translate-y-1">
             <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
                 <Avatar className="h-20 w-20 border-2 border-muted-foreground group-hover:border-accent transition-colors">
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
                     <AvatarFallback className="text-2xl">{userInitials}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">

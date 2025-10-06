@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -183,7 +184,7 @@ export default function TasksClient({ currentUser, users, allTasks: initialTasks
                                         <TooltipTrigger asChild>
                                             <Link href={`/dashboard/users/${assignee.id}`} className="-ml-2 first:ml-0">
                                                 <Avatar className="h-7 w-7 border-2 border-background">
-                                                    <AvatarImage src={assignee.avatar} />
+                                                    <AvatarImage src={assignee.avatar ?? undefined} />
                                                     <AvatarFallback>{assignee.name.charAt(0)}</AvatarFallback>
                                                 </Avatar>
                                             </Link>
@@ -219,7 +220,7 @@ export default function TasksClient({ currentUser, users, allTasks: initialTasks
                             {task.assignerId ? (
                                 <Link href={`/dashboard/users/${task.assignerId}`} className="flex items-center gap-2 group">
                                     <Avatar className="h-6 w-6">
-                                        <AvatarImage src={task.assignerAvatar} />
+                                        <AvatarImage src={task.assignerAvatar ?? undefined} />
                                         <AvatarFallback>{task.assignerName.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <span className="group-hover:underline">{task.assignerName}</span>

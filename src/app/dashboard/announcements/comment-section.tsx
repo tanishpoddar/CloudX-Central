@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from "react-hook-form";
@@ -63,7 +64,7 @@ export function CommentSection({ announcementId, comments, currentUser, userMap 
                     return (
                         <div key={comment.id} className="flex items-start gap-3">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={author?.avatar} />
+                                <AvatarImage src={author?.avatar ?? undefined} />
                                 <AvatarFallback>{author?.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 rounded-lg bg-muted/50 p-3">
@@ -84,7 +85,7 @@ export function CommentSection({ announcementId, comments, currentUser, userMap 
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-3">
                 <Avatar className="h-10 w-10">
-                    <AvatarImage src={currentUser.avatar} />
+                    <AvatarImage src={currentUser.avatar ?? undefined} />
                     <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <FormField

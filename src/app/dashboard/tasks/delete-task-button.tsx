@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -14,12 +15,43 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Trash } from "lucide-react";
+import { deleteTask } from "./actions";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+
 
 interface DeleteTaskButtonProps {
-  formAction: () => void;
+  taskId: string;
 }
 
-export default function DeleteTaskButton({ formAction }: DeleteTaskButtonProps) {
+export default function DeleteTaskButton({ taskId }: DeleteTaskButtonProps) {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      try {
+        await deleteTask(taskId);
+        toast({
+          title: "Task Deleted",
+          description: "The task has been permanently removed.",
+        });
+        router.push('/dashboard/tasks');
+      } catch (error) {
+         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
+            // This is expected, do nothing.
+            return;
+        }
+        toast({
+          variant: "destructive",
+          title: "Deletion Failed",
+          description: error instanceof Error ? error.message : "An unknown error occurred.",
+        });
+      }
+    });
+  };
+
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -29,7 +61,6 @@ export default function DeleteTaskButton({ formAction }: DeleteTaskButtonProps) 
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
-        <form action={formAction}>
             <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -39,11 +70,10 @@ export default function DeleteTaskButton({ formAction }: DeleteTaskButtonProps) 
             </AlertDialogHeader>
             <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction asChild>
-                <Button type="submit" className="bg-destructive hover:bg-destructive/90">Continue</Button>
+            <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+              {isPending ? "Deleting..." : "Continue"}
             </AlertDialogAction>
             </AlertDialogFooter>
-        </form>
       </AlertDialogContent>
     </AlertDialog>
   );

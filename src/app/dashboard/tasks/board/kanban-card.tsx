@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Draggable } from '@hello-pangea/dnd';
@@ -10,7 +11,7 @@ import { format, differenceInHours } from 'date-fns';
 import Link from 'next/link';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-type AssigneeInfo = { name: string; avatar?: string };
+type AssigneeInfo = { name: string; avatar?: string | null };
 type EnrichedTask = Task & { assignees: AssigneeInfo[] };
 
 interface KanbanCardProps {
@@ -67,7 +68,7 @@ export function KanbanCard({ task, index }: KanbanCardProps) {
                                 <Tooltip key={`${task.id}-assignee-${i}`}>
                                     <TooltipTrigger>
                                          <Avatar className="h-6 w-6 border-2 border-background -ml-2 first:ml-0">
-                                            <AvatarImage src={assignee.avatar} />
+                                            <AvatarImage src={assignee.avatar ?? undefined} />
                                             <AvatarFallback>{assignee.name.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                     </TooltipTrigger>

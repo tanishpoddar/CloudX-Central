@@ -5,10 +5,10 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { adminDb } from '@/lib/firebase-admin';
 import { getCurrentUser } from '@/lib/auth';
-import type { User } from '@/types';
+import type { User, UserRole, Team, SubTeam } from '@/types';
 
 const userSchema = z.object({
-  id: z.string(),
+  id: z.string().min(1, "ID is required"),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
   username: z.string().min(1, 'Username is required'),
@@ -31,6 +31,10 @@ const userSchema = z.object({
 export async function updateUser(userData: User) {
   const currentUser = await getCurrentUser();
   if (!currentUser) throw new Error('Not authenticated');
+
+  if (!adminDb) {
+    throw new Error('Database not initialized.');
+  }
 
   const authorizedRoles: (string | undefined)[] = ['Co-founder', 'Secretary', 'Chair of Directors'];
   if (!authorizedRoles.includes(currentUser.role)) {
@@ -55,10 +59,6 @@ export async function updateUser(userData: User) {
       github: dataToUpdate.github || null,
   };
 
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
-
   await adminDb.collection('users').doc(id).update(processedData);
 
   revalidatePath('/dashboard/admin');
@@ -70,13 +70,13 @@ export async function seedUsers(usersJson: string): Promise<User[]> {
   const currentUser = await getCurrentUser();
   if (!currentUser) throw new Error('Not authenticated');
 
+  if (!adminDb) {
+    throw new Error('Database not initialized.');
+  }
+
   const authorizedRoles: (string | undefined)[] = ['Co-founder', 'Secretary', 'Chair of Directors'];
   if (!authorizedRoles.includes(currentUser.role)) {
     throw new Error('Not authorized');
-  }
-
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
   }
 
   let usersToSeed: User[];
@@ -90,7 +90,7 @@ export async function seedUsers(usersJson: string): Promise<User[]> {
     const validation = userSchema.safeParse(user);
     if (!validation.success) {
       const fieldErrors = validation.error.flatten().fieldErrors;
-      const firstErrorKey = Object.keys(fieldErrors)[0];
+      const firstErrorKey = Object.keys(fieldErrors)[0] as keyof typeof fieldErrors;
       const firstErrorMessage = fieldErrors[firstErrorKey]?.[0];
       throw new Error(`Validation failed for user ${user.name || user.id}: ${firstErrorKey} - ${firstErrorMessage || 'Invalid data.'}`);
     }

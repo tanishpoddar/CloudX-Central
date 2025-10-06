@@ -1,3 +1,4 @@
+
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getUserById } from '@/lib/data';
@@ -71,7 +72,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
             <Avatar className="h-24 w-24 border-2 border-primary">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
               <AvatarFallback className="text-3xl">
                 {user.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>

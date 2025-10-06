@@ -3,8 +3,10 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from '@vercel/analytics/react';
+import LiquidEther from '@/components/LiquidEther';
+import ClickSpark from '@/components/ClickSpark';
 
 const fontBody = Inter({ subsets: ['latin'], variable: '--font-body' });
 
@@ -28,8 +30,37 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>
-        {children}
+      <body style={{ margin: 0, minHeight: '100vh', position: 'relative' }}>
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 0,
+          pointerEvents: 'none'
+        }}>
+          <LiquidEther
+            colors={['#5227FF', '#FF9FFC', '#B19EEF']}
+            mouseForce={20}
+            cursorSize={100}
+            isViscous={false}
+            viscous={30}
+            iterationsViscous={32}
+            iterationsPoisson={32}
+            resolution={0.5}
+            isBounce={false}
+            autoDemo={true}
+            autoSpeed={0.5}
+            autoIntensity={2.2}
+            takeoverDuration={0.25}
+            autoResumeDelay={3000}
+            autoRampDuration={0.6}
+          />
+        </div>
+        {/* ClickSpark - covers whole app and enables click effect */}
+        <ClickSpark sparkColor="#fff" sparkSize={10} sparkRadius={15} sparkCount={8} duration={400}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {children}
+          </div>
+        </ClickSpark>
         <Toaster />
         <SpeedInsights />
         <Analytics />

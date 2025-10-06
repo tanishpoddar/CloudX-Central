@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from "zod";
@@ -45,6 +46,10 @@ export async function createAnnouncement(data: FormData) {
     throw new Error("You must be logged in.");
   }
 
+  if (!adminDb) {
+    throw new Error("Database not initialized.");
+  }
+
   const allowedRoles: (string | undefined)[] = ['Co-founder', 'Secretary', 'Chair of Directors'];
   if (!allowedRoles.includes(currentUser.role)) {
     throw new Error("You do not have permission to create announcements.");
@@ -85,9 +90,7 @@ export async function createAnnouncement(data: FormData) {
     };
   }
 
-  if (!adminDb) {
-    throw new Error('Database not initialized.');
-  }
+  
   const docRef = await adminDb.collection("announcements").add(newAnnouncement);
 
   // Notify users
@@ -148,12 +151,12 @@ export async function addAnnouncementComment(formData: FormData) {
   const currentUser = await getCurrentUser();
   if (!currentUser) throw new Error("Not authenticated");
 
+  if (!adminDb) throw new Error('Database not initialized.');
+
   const announcementId = formData.get('announcementId') as string;
   const message = formData.get('message') as string;
 
   if (!announcementId || !message) throw new Error("Invalid data");
-
-  if (!adminDb) throw new Error('Database not initialized.');
 
   await adminDb.collection('announcementComments').add({
     announcementId,

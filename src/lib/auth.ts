@@ -1,3 +1,4 @@
+
 // This is a server-side file.
 'use server';
 import { cookies } from 'next/headers';
@@ -13,6 +14,15 @@ export async function getCurrentUser(): Promise<User | null> {
         return null;
     }
 
+    if (!adminDb) {
+        // If adminDb isn't initialized, we can't verify the user against the database.
+        // For this demo app, we'll proceed with caution, but this highlights a dependency.
+        console.warn('Firebase Admin DB is not initialized. User data from DB is unavailable.');
+        // Optionally, you could try to decode the cookie without DB validation
+        // but it's less secure. Returning null is safer.
+        return null;
+    }
+
     try {
         // Since we are not verifying the token against Firebase Auth service here,
         // we are trusting the cookie content. This is acceptable for this internal demo app.
@@ -24,9 +34,6 @@ export async function getCurrentUser(): Promise<User | null> {
             return null;
         }
         
-        if (!adminDb) {
-            throw new Error('Database not initialized.');
-        }
         const userDoc = await adminDb.collection('users').doc(userId).get();
         if (!userDoc.exists) {
             return null;

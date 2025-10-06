@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User, Announcement, AnnouncementComment, AnnouncementReaction, PollVote } from "@/types";
@@ -32,7 +33,7 @@ export function AnnouncementCard({ announcement, currentUser, userMap }: Announc
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
                         <Avatar>
-                            <AvatarImage src={announcement.author?.avatar} alt={announcement.author?.name} />
+                            <AvatarImage src={announcement.author?.avatar ?? undefined} alt={announcement.author?.name} />
                             <AvatarFallback>{announcement.author?.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>

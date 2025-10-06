@@ -1,3 +1,4 @@
+
 // This is a server-side file.
 'use server';
 
@@ -61,13 +62,13 @@ export const getAllLogs = cache(async (): Promise<Log[]> => {
     return logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Log));
 });
 
-export const getLogsForTask = cache(async (taskId: string): Promise<Log[]> => {
+export const getLogsForTask = async (taskId: string): Promise<Log[]> => {
     if (!adminDb) {
         throw new Error('Database not initialized.');
     }
     const logsSnapshot = await adminDb.collection('logs').where('taskId', '==', taskId).orderBy('timestamp', 'desc').get();
     return logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Log));
-});
+};
 
 
 export const getCommentsForTask = cache(async (taskId: string): Promise<Comment[]> => {
