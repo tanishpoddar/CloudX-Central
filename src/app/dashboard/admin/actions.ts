@@ -5,10 +5,10 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { adminDb } from '@/lib/firebase-admin';
 import { getCurrentUser } from '@/lib/auth';
-import type { User } from '@/types';
+import type { User, UserRole, Team } from '@/types';
 
 const userSchema = z.object({
-  id: z.string(),
+  id: z.string().min(1, "ID is required"),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
   username: z.string().min(1, 'Username is required'),
@@ -90,7 +90,7 @@ export async function seedUsers(usersJson: string): Promise<User[]> {
     const validation = userSchema.safeParse(user);
     if (!validation.success) {
       const fieldErrors = validation.error.flatten().fieldErrors;
-      const firstErrorKey = Object.keys(fieldErrors)[0];
+      const firstErrorKey = Object.keys(fieldErrors)[0] as keyof typeof fieldErrors;
       const firstErrorMessage = fieldErrors[firstErrorKey]?.[0];
       throw new Error(`Validation failed for user ${user.name || user.id}: ${firstErrorKey} - ${firstErrorMessage || 'Invalid data.'}`);
     }
