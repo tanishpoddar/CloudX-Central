@@ -31,18 +31,20 @@ import { getCurrentUser } from '@/lib/auth';
 import { TaskChart } from './task-chart';
 import { getAllTasks, getAllUsers, getAllLogs, getAnnouncements } from '@/lib/data';
 import type { Task, User, Log } from '@/types';
-import AnnouncementForm from './announcement-form';
+import { getSubordinates } from '@/lib/hierarchy';
 import { formatDistanceToNow } from 'date-fns';
 
 export default async function Dashboard() {
   const user = await getCurrentUser();
 
-  const users = await getAllUsers();
-  const tasks = await getAllTasks();
-  const logs = await getAllLogs();
-  const announcements = await getAnnouncements();
-
   if (!user) return null;
+
+  const [users, tasks, allLogs, announcements] = await Promise.all([
+    getAllUsers(),
+    getAllTasks(),
+    getAllLogs(),
+    getAnnouncements(),
+  ]);
 
   const myTasks = tasks.filter(t => (t.assignedToIds || []).includes(user.id));
   const teamTasks = tasks.filter(t => {
@@ -51,7 +53,36 @@ export default async function Dashboard() {
     return taskTeam === user.team && !t.assignedToIds.includes(user.id);
   });
 
-  const recentLogs = logs.slice(0, 5).map(log => {
+  const getVisibleLogs = async (currentUser: User, logs: Log[], allUsers: User[]): Promise<Log[]> => {
+    const { role, id } = currentUser;
+
+    if (role === 'Co-founder' || role === 'Secretary') {
+      return logs;
+    }
+
+    const subordinateIds = await getSubordinates(id, allUsers);
+    const visibleUserIds = new Set([id, ...subordinateIds]);
+
+    return logs.filter(log => {
+      // Show logs created by the user or their subordinates
+      if (visibleUserIds.has(log.userId)) {
+          return true;
+      }
+      
+      // Show logs for announcements visible to the user
+      if (log.message.toLowerCase().includes('announcement')) {
+          // This is a simplification; for now, we assume if they can see the log section, they can see announcement logs.
+          // A more robust implementation would check if the announcement itself is visible.
+          return true;
+      }
+
+      return false;
+    });
+  };
+
+  const visibleLogs = await getVisibleLogs(user, allLogs, users);
+
+  const recentLogs = visibleLogs.slice(0, 5).map(log => {
       const logUser = users.find(u => u.id === log.userId);
       return {...log, userName: logUser?.name, userAvatar: logUser?.avatar}
   });
@@ -147,6 +178,9 @@ export default async function Dashboard() {
                         </div>
                     </div>
                 ))}
+                 {enrichedAnnouncements.length === 0 && (
+                    <div className="text-center text-muted-foreground">No recent announcements.</div>
+                )}
               </div>
                 <Button asChild variant="outline" className="w-full">
                     <Link href="/dashboard/announcements">View All Announcements</Link>
@@ -172,25 +206,23 @@ export default async function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
-            {recentLogs.map(log => (
+            {recentLogs.length > 0 ? recentLogs.map(log => (
                 <div key={log.id} className="flex items-center gap-4">
                     <Avatar className="hidden h-9 w-9 sm:flex">
                         <AvatarImage src={log.userAvatar} alt="Avatar" data-ai-hint="person portrait" />
                         <AvatarFallback>{log.userName?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="grid gap-1">
-                        <p className="text-sm font-medium leading-none">
-                            {log.userName}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                            {log.message.length > 50 ? `${log.message.substring(0,50)}...` : log.message}
-                        </p>
+                        <p className="text-sm font-medium leading-none" dangerouslySetInnerHTML={{ __html: log.userName || 'System' }} />
+                        <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: log.message.length > 50 ? `${log.message.substring(0,50)}...` : log.message }} />
                     </div>
                     <div className="ml-auto text-xs text-muted-foreground">
                         {new Date(log.timestamp).toLocaleDateString()}
                     </div>
                 </div>
-            ))}
+            )) : (
+              <div className="text-center text-muted-foreground">No recent activity.</div>
+            )}
           </CardContent>
         </Card>
       </div>

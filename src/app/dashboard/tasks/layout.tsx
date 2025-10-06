@@ -1,3 +1,4 @@
+
 import type { ReactNode } from 'react';
 import TasksLayoutClient from './tasks-layout-client';
 import { getCurrentUser } from '@/lib/auth';
@@ -10,7 +11,7 @@ export default async function TasksLayout({ children }: { children: ReactNode })
   
   if(!currentUser) return null;
 
-  const canCreateTask = !!currentUser;
+  const canCreateTask = ['Co-founder', 'Secretary', 'Chair of Directors', 'Lead'].includes(currentUser.role);
   
   // Filtering logic is now primarily on the client for faster UI response.
   // We pass all tasks and let the client component handle visibility.

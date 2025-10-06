@@ -99,8 +99,7 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
     const assignableUsers = useMemo(() => {
         if (!currentUser) return [];
 
-        // For bulk create, always allow selection from assignable users.
-        if (formType !== 'create-bulk' && currentUser.role === 'Member') {
+        if (currentUser.role === 'Member' && formType !== 'create-bulk') {
             return allUsers.filter(u => u.id === currentUser.id);
         }
 

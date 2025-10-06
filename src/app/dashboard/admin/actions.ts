@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -11,16 +12,16 @@ const userSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
   username: z.string().min(1, 'Username is required'),
-  avatar: z.string().url().or(z.literal('')),
   password: z.string().min(1, 'Password is required'),
   role: z.enum(['Co-founder', 'Secretary', 'Chair of Directors', 'Lead', 'Member']),
-  team: z.enum(['Technology', 'Corporate', 'Creatives', 'Presidium']).nullable(),
+  avatar: z.string().url().or(z.literal('')).optional().nullable(),
+  team: z.enum(['Technology', 'Corporate', 'Creatives', 'Presidium']).optional().nullable(),
   subTeam: z
     .enum([
       'dev', 'ui-ux', 'aiml', 'cloud', 'iot', 'events', 'ops', 'pr',
       'sponsorship', 'digital-design', 'media',
     ])
-    .nullable(),
+    .optional().nullable(),
   phone: z.string().optional().nullable(),
   birthday: z.string().optional().nullable(),
   linkedin: z.string().url().or(z.literal('')).optional().nullable(),
@@ -65,7 +66,7 @@ export async function updateUser(userData: User) {
   revalidatePath(`/dashboard/users/${id}`);
 }
 
-export async function seedUsers(usersToSeed: User[]): Promise<User[]> {
+export async function seedUsers(usersJson: string): Promise<User[]> {
   const currentUser = await getCurrentUser();
   if (!currentUser) throw new Error('Not authenticated');
 
@@ -78,15 +79,32 @@ export async function seedUsers(usersToSeed: User[]): Promise<User[]> {
     throw new Error('Database not initialized.');
   }
 
+  let usersToSeed: User[];
+  try {
+    usersToSeed = JSON.parse(usersJson);
+  } catch (e) {
+    throw new Error("Invalid JSON data provided for seeding.");
+  }
+  
+  for (const user of usersToSeed) {
+    const validation = userSchema.safeParse(user);
+    if (!validation.success) {
+      const fieldErrors = validation.error.flatten().fieldErrors;
+      const firstErrorKey = Object.keys(fieldErrors)[0];
+      const firstErrorMessage = fieldErrors[firstErrorKey]?.[0];
+      throw new Error(`Validation failed for user ${user.name || user.id}: ${firstErrorKey} - ${firstErrorMessage || 'Invalid data.'}`);
+    }
+  }
+
   const usersCollection = adminDb.collection('users');
   
   // Delete all existing users
   const snapshot = await usersCollection.get();
-  const batch = adminDb.batch();
+  const deleteBatch = adminDb.batch();
   snapshot.docs.forEach(doc => {
-    batch.delete(doc.ref);
+    deleteBatch.delete(doc.ref);
   });
-  await batch.commit();
+  await deleteBatch.commit();
 
   // Seed new users
   const seedBatch = adminDb.batch();
@@ -97,12 +115,19 @@ export async function seedUsers(usersToSeed: User[]): Promise<User[]> {
         continue;
     }
     const docRef = usersCollection.doc(user.id);
-    seedBatch.set(docRef, user);
+    const validatedUser = userSchema.safeParse(user);
+    if (validatedUser.success) {
+      seedBatch.set(docRef, validatedUser.data);
+    } else {
+       console.warn(`Skipping invalid user data for ${user.id}:`, validatedUser.error.flatten());
+    }
   }
   await seedBatch.commit();
   
   revalidatePath('/dashboard/admin');
   revalidatePath('/dashboard/users');
 
-  return usersToSeed;
+  // Return the newly seeded users to update the client state
+  const newUsersSnapshot = await usersCollection.orderBy('name').get();
+  return newUsersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 }

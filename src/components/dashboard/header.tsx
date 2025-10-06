@@ -40,8 +40,11 @@ const getUserTitle = (role: UserRole, team: Team | null): string => {
   if (role === 'Chair of Directors' && team) {
     return `Director of ${team}`;
   }
+  if (role === 'Lead' && team) {
+    return `Lead at ${team}`;
+  }
   return role;
-}
+};
 
 export function Header({ user }: { user: User }) {
   const userInitials = user.name.split(' ').map((n) => n[0]).join('');
