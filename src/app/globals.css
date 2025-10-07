@@ -73,44 +73,20 @@ body {
     background-image: radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.1), #000 2px);
     background-size: 2rem 2rem;
   }
+  
+  /* Fix for browser autofill styles */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px hsl(var(--background)) inset !important;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }
 
 @layer components {
   .glass {
     @apply border border-white/10 bg-black/30 backdrop-blur-lg;
   }
-}
-
-/* Gantt Task React Customizations */
-.gantt-chart-container rect.gantt-bar-background {
-    fill: hsl(var(--secondary));
-}
-.gantt-chart-container .gantt-bar-progress {
-    fill: hsl(var(--primary));
-}
-.gantt-chart-container .gantt-handle {
-    fill: hsl(var(--accent));
-}
-.gantt-chart-container .grid-header {
-    fill: hsl(var(--card));
-}
-.gantt-chart-container .grid-row,
-.gantt-chart-container .grid-header {
-    stroke: hsl(var(--border));
-}
-.gantt-chart-container .gantt-today-highlight {
-    fill: hsl(var(--primary) / 0.2);
-}
-.gantt-chart-container text {
-    fill: hsl(var(--foreground));
-}
-.gantt-chart-container .calendar-header,
-.gantt-chart-container .tick {
-     stroke: hsl(var(--border));
-}
-.gantt-chart-container .gantt-title {
-    font-weight: 600;
-}
-.gantt-chart-container .bar-label {
-    fill: hsl(var(--primary-foreground)) !important;
 }

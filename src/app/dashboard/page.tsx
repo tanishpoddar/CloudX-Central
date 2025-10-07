@@ -48,11 +48,33 @@ export default async function Dashboard() {
   ]);
 
   const myTasks = tasks.filter(t => (t.assignedToIds || []).includes(user.id));
-  const teamTasks = tasks.filter(t => {
-    if (!t.assignedToIds || t.assignedToIds.length === 0) return false;
-    const taskTeam = users.find(u => u.id === t.assignedToIds![0])?.team;
-    return taskTeam === user.team && !t.assignedToIds.includes(user.id);
-  });
+  
+  let teamTasks: Task[];
+  const isPresidium = user.role === 'Co-founder' || user.role === 'Secretary';
+
+  if (isPresidium) {
+    teamTasks = tasks.filter(t => t.status === 'To Do' || t.status === 'In Progress');
+  } else if (user.role === 'Lead') {
+    const userMap = new Map(users.map(u => [u.id, u]));
+    teamTasks = tasks.filter(t => {
+      if (!t.assignedToIds || t.assignedToIds.length === 0) return false;
+      // Check if any assignee is in the lead's sub-team
+      return t.assignedToIds.some(assigneeId => {
+          const assignee = userMap.get(assigneeId);
+          return assignee?.subTeam === user.subTeam && assignee.id !== user.id;
+      });
+    });
+  } else { // This will now primarily be for Chair of Directors
+    const userMap = new Map(users.map(u => [u.id, u]));
+    teamTasks = tasks.filter(t => {
+      if (!t.assignedToIds || t.assignedToIds.length === 0) return false;
+      // Check if any assignee is in the director's team
+      return t.assignedToIds.some(assigneeId => {
+          const assignee = userMap.get(assigneeId);
+          return assignee?.team === user.team && assignee.id !== user.id;
+      });
+    });
+  }
 
   const getVisibleLogs = async (currentUser: User, logs: Log[], allUsers: User[]): Promise<Log[]> => {
     const { role, id } = currentUser;
@@ -65,15 +87,11 @@ export default async function Dashboard() {
     const visibleUserIds = new Set([id, ...subordinateIds]);
 
     return logs.filter(log => {
-      // Show logs created by the user or their subordinates
       if (visibleUserIds.has(log.userId)) {
           return true;
       }
       
-      // Show logs for announcements visible to the user
       if (log.message.toLowerCase().includes('announcement')) {
-          // This is a simplification; for now, we assume if they can see the log section, they can see announcement logs.
-          // A more robust implementation would check if the announcement itself is visible.
           return true;
       }
 
@@ -124,12 +142,18 @@ export default async function Dashboard() {
               </Card>
               <Card className="glass">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Team Tasks</CardTitle>
+                  <CardTitle className="text-sm font-medium">{isPresidium ? "Active Organization Tasks" : user.role === 'Lead' ? "Sub-Team Tasks" : "Team Tasks"}</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                   <div className="text-2xl font-bold">{teamTasks.length}</div>
-                  <p className="text-xs text-muted-foreground">Across your teams and leads</p>
+                   <p className="text-xs text-muted-foreground">
+                    {isPresidium 
+                        ? "All 'To Do' & 'In Progress' tasks" 
+                        : user.role === 'Lead'
+                        ? "Across your sub-team"
+                        : "Across your team and leads"}
+                    </p>
               </CardContent>
               </Card>
               <Card className="glass">

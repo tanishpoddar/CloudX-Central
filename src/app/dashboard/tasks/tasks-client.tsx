@@ -45,6 +45,7 @@ export default function TasksClient({ currentUser, users, allTasks: initialTasks
   const searchParams = useSearchParams();
 
   const currentFilter = searchParams.get('filter') || 'all';
+  const searchQuery = searchParams.get('q') || '';
 
   const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
   
@@ -82,25 +83,41 @@ export default function TasksClient({ currentUser, users, allTasks: initialTasks
   const filteredAndEnrichedTasks = useMemo(() => {
     if (!visibleTasks) return null;
 
-    let filtered = visibleTasks;
+    let filteredByTab = visibleTasks;
 
     switch(currentFilter) {
       case 'active':
-        filtered = visibleTasks.filter(t => t.status === 'To Do' || t.status === 'In Progress');
+        filteredByTab = visibleTasks.filter(t => t.status === 'To Do' || t.status === 'In Progress');
         break;
       case 'missing':
-        filtered = visibleTasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'Done' && t.status !== 'Cancelled');
+        filteredByTab = visibleTasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'Done' && t.status !== 'Cancelled');
         break;
       case 'done':
-        filtered = visibleTasks.filter(t => t.status === 'Done' || t.status === 'Cancelled');
+        filteredByTab = visibleTasks.filter(t => t.status === 'Done' || t.status === 'Cancelled');
         break;
       case 'all':
       default:
-        filtered = visibleTasks;
+        filteredByTab = visibleTasks;
         break;
     }
+    
+    let filteredBySearch = filteredByTab;
+    if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        filteredBySearch = filteredByTab.filter(task => {
+            const assignees = (task.assignedToIds || []).map(id => userMap.get(id)?.name || '').join(' ');
+            const assigner = userMap.get(task.assignedById)?.name || '';
+            return (
+                task.title.toLowerCase().includes(searchLower) ||
+                task.status.toLowerCase().includes(searchLower) ||
+                assignees.toLowerCase().includes(searchLower) ||
+                assigner.toLowerCase().includes(searchLower)
+            );
+        });
+    }
 
-    return filtered.map(task => {
+
+    return filteredBySearch.map(task => {
         const assignees = (task.assignedToIds || [])
             .map(id => userMap.get(id))
             .filter((u): u is User => !!u);
@@ -116,7 +133,7 @@ export default function TasksClient({ currentUser, users, allTasks: initialTasks
         }
     });
 
-  }, [visibleTasks, currentFilter, userMap]);
+  }, [visibleTasks, currentFilter, searchQuery, userMap]);
 
 
   const statusBadgeVariant = {
@@ -138,6 +155,14 @@ export default function TasksClient({ currentUser, users, allTasks: initialTasks
             {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </div>
       )
+    }
+    
+    if (tasks.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-40 text-muted-foreground">
+                No tasks match your filters.
+            </div>
+        );
     }
     
     return (

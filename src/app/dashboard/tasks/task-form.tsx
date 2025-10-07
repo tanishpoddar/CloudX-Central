@@ -51,7 +51,8 @@ const taskSchema = z.object({
   dueDate: z.date({ required_error: "A due date is required." }),
   dueDateTime: z.object({
       hour: z.string(),
-      minute: z.string()
+      minute: z.string(),
+      ampm: z.string(),
   }),
   links: z.array(z.object({ value: z.string().url("Must be a valid URL if not empty").or(z.literal('')) })).optional(),
 });
@@ -75,6 +76,23 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
     const router = useRouter();
     
     const defaultDueDate = task ? parseISO(task.dueDate) : new Date();
+    
+    const getInitialTime = () => {
+        const date = task ? parseISO(task.dueDate) : new Date();
+        const hour24 = date.getHours();
+        const minute = date.getMinutes();
+        
+        const ampm = hour24 >= 12 ? 'PM' : 'AM';
+        let hour12 = hour24 % 12;
+        if (hour12 === 0) hour12 = 12;
+
+        return {
+            hour: String(hour12),
+            minute: String(minute).padStart(2,'0'),
+            ampm: ampm
+        }
+    }
+
 
     const form = useForm<TaskFormValues>({
         resolver: zodResolver(taskSchema),
@@ -83,10 +101,7 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
             description: task?.description || '',
             assignedToIds: task?.assignedToIds || (currentUser.role === 'Member' ? [currentUser.id] : []),
             dueDate: defaultDueDate,
-            dueDateTime: {
-                hour: task ? format(defaultDueDate, 'HH') : '23',
-                minute: task ? format(defaultDueDate, 'mm') : '59',
-            },
+            dueDateTime: getInitialTime(),
             links: task?.links ? task.links.map(l => ({ value: l })) : [{value: ''}]
         }
     });
@@ -113,7 +128,7 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
             availableUsers = allUsers.filter(u => u.subTeam === currentUser.subTeam && u.role === 'Member');
         }
 
-        if ((selectedTeams.length > 0 || selectedRoles.length > 0) && (currentUser.role === 'Co-founder' || currentUser.role === 'Secretary')) {
+        if ((selectedTeams.length > 0 || selectedRoles.length > 0) && (currentUser.role === 'Co-founder' || currentUser.role === 'Secretary' || currentUser.role === 'Chair of Directors')) {
              return availableUsers.filter(user => {
                 const teamMatch = selectedTeams.length === 0 || (user.team && selectedTeams.includes(user.team));
                 const roleMatch = selectedRoles.length === 0 || selectedRoles.includes(user.role);
@@ -139,7 +154,14 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
   const onSubmit = async (data: TaskFormValues) => {
     setIsSubmitting(true);
     try {
-      const combinedDateTime = setMinutes(setHours(data.dueDate, parseInt(data.dueDateTime.hour, 10)), parseInt(data.dueDateTime.minute, 10));
+      let hour24 = parseInt(data.dueDateTime.hour, 10);
+      if (data.dueDateTime.ampm === 'PM' && hour24 !== 12) {
+          hour24 += 12;
+      }
+      if (data.dueDateTime.ampm === 'AM' && hour24 === 12) {
+          hour24 = 0;
+      }
+      const combinedDateTime = setMinutes(setHours(data.dueDate, hour24), parseInt(data.dueDateTime.minute, 10));
       
       const formData = new FormData();
       formData.append('title', data.title);
@@ -301,25 +323,27 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
                             </FormItem>
                             )}
                         />
-                         {(currentUser.role === 'Co-founder' || currentUser.role === 'Secretary') && (
+                         {(currentUser.role === 'Co-founder' || currentUser.role === 'Secretary' || currentUser.role === 'Chair of Directors') && (
                             <div className="p-4 border rounded-lg space-y-4">
                                <FormLabel>Filter Assignees</FormLabel>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <p className="text-sm font-medium">By Team</p>
-                                        {(['Technology', 'Corporate', 'Creatives'] as Team[]).map(team => (
-                                            <div key={team} className="flex items-center space-x-2">
-                                                <Checkbox id={`team-${team}`} checked={selectedTeams.includes(team)} onCheckedChange={() => handleTeamFilterChange(team)} />
-                                                <label htmlFor={`team-${team}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{team}</label>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {(currentUser.role === 'Co-founder' || currentUser.role === 'Secretary') && (
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-medium">By Team</p>
+                                            {(['Technology', 'Corporate', 'Creatives'] as Team[]).map(team => (
+                                                <div key={team} className="flex items-center space-x-2">
+                                                    <Checkbox id={`team-${team}`} checked={selectedTeams.includes(team)} onCheckedChange={() => handleTeamFilterChange(team)} />
+                                                    <label htmlFor={`team-${team}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{team}</label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                      <div className="space-y-2">
                                         <p className="text-sm font-medium">By Role</p>
-                                        {(['Chair of Directors', 'Lead', 'Member'] as UserRole[]).map(role => (
+                                        {(['Lead', 'Member'] as UserRole[]).map(role => (
                                             <div key={role} className="flex items-center space-x-2">
                                                 <Checkbox id={`role-${role}`} checked={selectedRoles.includes(role)} onCheckedChange={() => handleRoleFilterChange(role)} />
-                                                <label htmlFor={`role-${role}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{role === 'Chair of Directors' ? 'Director' : role}</label>
+                                                <label htmlFor={`role-${role}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{role}</label>
                                             </div>
                                         ))}
                                     </div>
@@ -388,8 +412,8 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
                                                         <SelectValue placeholder="Hour" />
                                                     </SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent>
-                                                    {Array.from({length: 24}, (_, i) => i.toString().padStart(2,'0')).map(hour => <SelectItem key={hour} value={hour}>{hour}</SelectItem>)}
+                                                <SelectContent className="max-h-48">
+                                                    {Array.from({length: 12}, (_, i) => String(i + 1)).map(hour => <SelectItem key={hour} value={hour}>{hour}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         </FormItem>
@@ -406,7 +430,24 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {Array.from({length: 60}, (_, i) => i.toString().padStart(2,'0')).map(min => <SelectItem key={min} value={min}>{min}</SelectItem>)}
+                                                    {['00', '15', '30', '45'].map(min => <SelectItem key={min} value={min}>{min}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}/>
+                                    <FormField
+                                        control={form.control}
+                                        name="dueDateTime.ampm"
+                                        render={({ field }) => (
+                                        <FormItem className="flex-1">
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="AM/PM" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {['AM', 'PM'].map(ampm => <SelectItem key={ampm} value={ampm}>{ampm}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         </FormItem>

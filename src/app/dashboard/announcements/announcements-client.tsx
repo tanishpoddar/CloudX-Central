@@ -12,6 +12,8 @@ import {
 import { AnnouncementCard } from "./announcement-card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 
 interface AnnouncementsClientProps {
     currentUser: User;
@@ -33,30 +35,50 @@ export default function AnnouncementsClient({
 
     const canPost = ['Co-founder', 'Secretary', 'Chair of Directors'].includes(currentUser.role);
     const userMap = new Map(users.map(u => [u.id, u]));
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('q') || '';
 
-    const visibleAnnouncements = initialAnnouncements.filter(announcement => {
-        // Org-wide announcements are always visible
-        if (!announcement.targetDomains || announcement.targetDomains.length === 0) {
-            return true;
-        }
-        // If targeted, check if the user's team is in the list
-        return currentUser.team && announcement.targetDomains.includes(currentUser.team);
-    });
+    const visibleAnnouncements = useMemo(() => {
+        return initialAnnouncements.filter(announcement => {
+            // Org-wide announcements are always visible
+            if (!announcement.targetDomains || announcement.targetDomains.length === 0) {
+                return true;
+            }
+            // If targeted, check if the user's team is in the list
+            return currentUser.team && announcement.targetDomains.includes(currentUser.team);
+        });
+    }, [initialAnnouncements, currentUser.team]);
 
-    const enrichedAnnouncements = visibleAnnouncements.map(announcement => {
-        const author = userMap.get(announcement.authorId);
-        const comments = initialComments.filter(c => c.announcementId === announcement.id);
-        const reactions = initialReactions.filter(r => r.announcementId === announcement.id);
-        const pollVotes = initialPollVotes.filter(v => v.announcementId === announcement.id);
-        
-        return {
-            ...announcement,
-            author,
-            comments,
-            reactions,
-            pollVotes,
+    const filteredAndEnrichedAnnouncements = useMemo(() => {
+        const enriched = visibleAnnouncements.map(announcement => {
+            const author = userMap.get(announcement.authorId);
+            const comments = initialComments.filter(c => c.announcementId === announcement.id);
+            const reactions = initialReactions.filter(r => r.announcementId === announcement.id);
+            const pollVotes = initialPollVotes.filter(v => v.announcementId === announcement.id);
+            
+            return {
+                ...announcement,
+                author,
+                comments,
+                reactions,
+                pollVotes,
+            }
+        });
+
+        if (!searchQuery) {
+            return enriched;
         }
-    })
+
+        return enriched.filter(ann => {
+            const searchLower = searchQuery.toLowerCase();
+            return (
+                ann.title.toLowerCase().includes(searchLower) ||
+                ann.content.toLowerCase().includes(searchLower) ||
+                ann.author?.name.toLowerCase().includes(searchLower)
+            );
+        });
+    }, [visibleAnnouncements, initialComments, initialReactions, initialPollVotes, userMap, searchQuery]);
+
 
     return (
         <div className="space-y-6 max-w-3xl mx-auto">
@@ -82,7 +104,7 @@ export default function AnnouncementsClient({
             </Card>
             
             <div className="space-y-6">
-                {enrichedAnnouncements.map(item => (
+                {filteredAndEnrichedAnnouncements.map(item => (
                     <AnnouncementCard 
                         key={item.id}
                         announcement={item}
@@ -92,10 +114,12 @@ export default function AnnouncementsClient({
                 ))}
             </div>
 
-             {enrichedAnnouncements.length === 0 && (
+             {filteredAndEnrichedAnnouncements.length === 0 && (
                 <Card className="glass">
                     <CardHeader>
-                        <p className="text-center text-muted-foreground">No announcements yet.</p>
+                        <p className="text-center text-muted-foreground">
+                            {searchQuery ? 'No announcements match your search.' : 'No announcements yet.'}
+                        </p>
                     </CardHeader>
                 </Card>
             )}

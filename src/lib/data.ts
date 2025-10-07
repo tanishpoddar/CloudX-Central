@@ -129,3 +129,25 @@ export const getPollVotesForAnnouncements = cache(async (announcementIds: string
     const votesSnapshot = await adminDb.collection('pollVotes').where('announcementId', 'in', announcementIds).get();
     return votesSnapshot.docs.map(doc => ({ ...doc.data() } as PollVote));
 });
+
+// Basic search functions - not efficient for large datasets without indexing (e.g., Algolia/Elasticsearch)
+export const searchUsers = async (query: string): Promise<User[]> => {
+    if (!adminDb) throw new Error('Database not initialized.');
+    const queryLower = query.toLowerCase();
+    const allUsers = await getAllUsers();
+    return allUsers.filter(u => u.name.toLowerCase().includes(queryLower) || u.email.toLowerCase().includes(queryLower));
+}
+
+export const searchTasks = async (query: string): Promise<Task[]> => {
+    if (!adminDb) throw new Error('Database not initialized.');
+    const queryLower = query.toLowerCase();
+    const allTasks = await getAllTasks();
+    return allTasks.filter(t => t.title.toLowerCase().includes(queryLower) || t.description.toLowerCase().includes(queryLower));
+}
+
+export const searchAnnouncements = async (query: string): Promise<Announcement[]> => {
+    if (!adminDb) throw new Error('Database not initialized.');
+    const queryLower = query.toLowerCase();
+    const allAnnouncements = await getAnnouncements(); // This already gets all for simplicity
+    return allAnnouncements.filter(a => a.title.toLowerCase().includes(queryLower) || a.content.toLowerCase().includes(queryLower));
+}

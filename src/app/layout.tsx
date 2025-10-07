@@ -55,12 +55,17 @@ export default function RootLayout({
             autoRampDuration={0.6}
           />
         </div>
-        {/* ClickSpark - covers whole app and enables click effect */}
-        <ClickSpark sparkColor="#fff" sparkSize={10} sparkRadius={15} sparkCount={8} duration={400}>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            {children}
-          </div>
-        </ClickSpark>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {children}
+        </div>
+        <ClickSpark
+            sparkColor="#fff"
+            sparkSize={10}
+            sparkRadius={15}
+            sparkCount={8}
+            duration={400}
+            className="fixed inset-0 w-full h-full z-[9999] pointer-events-none"
+        />
         <Toaster />
         <SpeedInsights />
         <Analytics />
