@@ -15,18 +15,11 @@ export async function getCurrentUser(): Promise<User | null> {
     }
 
     if (!adminDb) {
-        // If adminDb isn't initialized, we can't verify the user against the database.
-        // For this demo app, we'll proceed with caution, but this highlights a dependency.
         console.warn('Firebase Admin DB is not initialized. User data from DB is unavailable.');
-        // Optionally, you could try to decode the cookie without DB validation
-        // but it's less secure. Returning null is safer.
         return null;
     }
 
     try {
-        // Since we are not verifying the token against Firebase Auth service here,
-        // we are trusting the cookie content. This is acceptable for this internal demo app.
-        // In a production app, you'd want to use a library like `jose` to verify a JWT.
         const decodedToken = JSON.parse(sessionCookie);
         const userId = decodedToken.userId;
 
@@ -43,14 +36,13 @@ export async function getCurrentUser(): Promise<User | null> {
         return user;
     } catch (error) {
         console.error('Error decoding session cookie:', error);
-        // If the cookie is invalid, delete it.
         const cookieStore = await cookies();
         cookieStore.delete(SESSION_COOKIE_NAME);
         return null;
     }
 }
 
-export async function login(email: string, password: string):Promise<void> {
+export async function login(email: string, password: string, remember: boolean = false):Promise<void> {
     if (!adminDb) {
         throw new Error('Database not initialized.');
     }
@@ -65,8 +57,6 @@ export async function login(email: string, password: string):Promise<void> {
     const userDoc = querySnapshot.docs[0];
     const user = { id: userDoc.id, ...userDoc.data() } as User;
 
-    // In a real app, you MUST hash passwords.
-    // This is a major security vulnerability.
     if (user.password !== password) {
         throw new Error("Invalid email or password.");
     }
@@ -75,12 +65,16 @@ export async function login(email: string, password: string):Promise<void> {
         userId: user.id,
         loggedInAt: Date.now()
     };
+
+    const sessionDuration = remember
+        ? 60 * 60 * 24 * 30 // 30 days
+        : 60 * 60 * 24; // 1 day
     
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 7, // One week
+        maxAge: sessionDuration,
         path: '/',
     });
 }

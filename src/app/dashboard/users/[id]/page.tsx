@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getUserById } from '@/lib/data';
+import { getCurrentUser } from '@/lib/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Card,
@@ -16,11 +17,13 @@ import {
   Github,
   Linkedin,
   Mail,
+  Pencil,
   Phone,
   User as UserIcon,
   Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 const getUserTitle = (role: string, team: string | null): string => {
   if (role === 'Chair of Directors' && team) {
@@ -58,13 +61,23 @@ interface UserProfilePageProps {
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
   const resolvedParams = await params;
-  const user = await getUserById(resolvedParams.id);
+  const [user, currentUser] = await Promise.all([
+    getUserById(resolvedParams.id),
+    getCurrentUser()
+  ]);
 
-  if (!user) {
+  if (!user || !currentUser) {
     notFound();
   }
+  
+  const isViewingOwnProfile = user.id === currentUser.id;
 
   const position = getUserTitle(user.role, user.team);
+
+  // Check if birthday is a valid date string before formatting
+  const formattedBirthday = user.birthday && !isNaN(new Date(user.birthday).getTime())
+    ? format(new Date(user.birthday), 'MMMM do')
+    : null;
 
   return (
     <div className="space-y-8">
@@ -81,6 +94,14 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
               <h1 className="font-headline text-3xl font-bold">{user.name}</h1>
               <p className="text-muted-foreground">@{user.username}</p>
             </div>
+             {isViewingOwnProfile && (
+              <Button asChild>
+                <Link href="/dashboard/my-profile/edit">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Profile
+                </Link>
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -98,7 +119,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
             <InfoRow icon={<Users size={18} />} label="Group Name" value={`${user.team} ${user.subTeam ? `(${user.subTeam})` : ''}`} />
             <InfoRow icon={<Mail size={18} />} label="Email" value={user.email} isLink href={`mailto:${user.email}`} />
             <InfoRow icon={<Phone size={18} />} label="Phone Number" value={user.phone} />
-            <InfoRow icon={<Cake size={18} />} label="Birthday" value={user.birthday ? format(new Date(user.birthday), 'MMMM do') : null} />
+            <InfoRow icon={<Cake size={18} />} label="Birthday" value={formattedBirthday} />
             <InfoRow icon={<Linkedin size={18} />} label="LinkedIn" value={user.linkedin} isLink />
             <InfoRow icon={<Github size={18} />} label="GitHub" value={user.github} isLink />
           </div>

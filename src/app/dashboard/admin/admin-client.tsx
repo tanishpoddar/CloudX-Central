@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useRef } from 'react';
+import { useState, useTransition, useRef, useEffect, useMemo } from 'react';
 import type { User, UserRole, Team, SubTeam } from '@/types';
 import {
   Table,
@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Download, Upload, PlusCircle, Trash2 } from 'lucide-react';
+import { Download, Upload, PlusCircle, Trash2, Search } from 'lucide-react';
 import Papa from 'papaparse';
 
 const roles: UserRole[] = ['Co-founder', 'Secretary', 'Chair of Directors', 'Lead', 'Member'];
@@ -47,11 +47,36 @@ const subTeams: (SubTeam | null | string)[] = [
 const NONE_VALUE = "__NONE__";
 const userTemplateKeys: (keyof User)[] = ['id', 'name', 'username', 'email', 'password', 'avatar', 'role', 'team', 'subTeam', 'phone', 'birthday', 'linkedin', 'github'];
 
+const sortUsersById = (users: User[]) => {
+  return [...users].sort((a, b) => {
+    const numA = parseInt(a.id.split('-')[1] || '0', 10);
+    const numB = parseInt(b.id.split('-')[1] || '0', 10);
+    return numA - numB;
+  });
+};
+
 export default function AdminClient({ users: initialUsers }: { users: User[] }) {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>(() => sortUsersById(initialUsers));
   const [isPending, startTransition] = useTransition();
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUsers(sortUsersById(initialUsers));
+  }, [initialUsers]);
+
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) {
+        return users;
+    }
+    return users.filter(user => {
+        return Object.values(user).some(value => 
+            String(value).toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    });
+  }, [users, searchQuery]);
+
 
   const getNextUserId = () => {
     const existingIds = users.map(u => {
@@ -89,11 +114,11 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
       linkedin: null,
       github: null,
     };
-    setUsers(prev => [newUser, ...prev]);
+    setUsers(prev => sortUsersById([newUser, ...prev]));
   }
 
   const handleDeleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(user => user.id !== userId));
+    setUsers(prev => sortUsersById(prev.filter(user => user.id !== userId)));
   }
 
   const handleSeedDatabase = () => {
@@ -101,7 +126,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
       try {
         const usersJson = JSON.stringify(users);
         const newUsers = await seedUsers(usersJson);
-        setUsers(newUsers);
+        setUsers(sortUsersById(newUsers));
         toast({
           title: 'Database Seeded',
           description: 'User data has been replaced with the data from the table.',
@@ -167,7 +192,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
             }
             return newUser as User;
           });
-          setUsers(prev => [...prev, ...parsedUsers]);
+          setUsers(prev => sortUsersById([...prev, ...parsedUsers]));
           toast({
             title: 'CSV Imported',
             description: `${parsedUsers.length} users loaded into the table. Review and click 'Seed Database' to save.`,
@@ -194,49 +219,60 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
   return (
     <Card className="glass">
       <CardContent className="pt-6">
-        <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
-           <Button variant="outline" onClick={handleAddNewUser} disabled={isPending}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
-          <Button variant="outline" onClick={() => handleDownloadCsv(true)} disabled={isPending}>
-            <Download className="mr-2 h-4 w-4" />
-            Download Template
-          </Button>
-          <Button variant="outline" onClick={() => handleDownloadCsv(false)} disabled={isPending}>
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button variant="outline" onClick={handleUploadClick} disabled={isPending}>
-            <Upload className="mr-2 h-4 w-4" />
-            Import CSV
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={handleFileUpload}
-            accept=".csv"
-          />
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={isPending}>
-                {isPending ? 'Seeding...' : 'Seed Database'}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will **delete all existing user data** and replace it with the data currently in the table. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleSeedDatabase}>Continue</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search table..."
+              className="w-full max-w-sm pl-8"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button variant="outline" onClick={handleAddNewUser} disabled={isPending}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add User
+            </Button>
+            <Button variant="outline" onClick={() => handleDownloadCsv(true)} disabled={isPending}>
+              <Download className="mr-2 h-4 w-4" />
+              Download Template
+            </Button>
+            <Button variant="outline" onClick={() => handleDownloadCsv(false)} disabled={isPending}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+            <Button variant="outline" onClick={handleUploadClick} disabled={isPending}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import CSV
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileUpload}
+              accept=".csv"
+            />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isPending}>
+                  {isPending ? 'Seeding...' : 'Seed Database'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will **delete all existing user data** and replace it with the data currently in the table. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSeedDatabase}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <Table>
@@ -259,7 +295,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map(user => (
+              {filteredUsers.map(user => (
                 <TableRow key={user.id}>
                   <TableCell className="w-28 text-muted-foreground">{user.id}</TableCell>
                   <TableCell>
@@ -311,7 +347,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
                       <SelectTrigger className="w-40">
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper">
                         {roles.map(role => (
                           <SelectItem key={role} value={role}>
                             {role}
@@ -328,7 +364,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
                       <SelectTrigger className="w-40">
                         <SelectValue placeholder="Select team" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper">
                         {teams.map(team => (
                           <SelectItem key={team ?? 'null'} value={team || NONE_VALUE}>
                             {team || 'None'}
@@ -345,7 +381,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
                       <SelectTrigger className="w-40">
                         <SelectValue placeholder="Select sub-team" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" className="w-auto min-w-[10rem] max-h-48">
                         {subTeams.map(subTeam => (
                           <SelectItem key={subTeam ?? 'null-subteam'} value={subTeam || NONE_VALUE}>
                             {subTeam || 'None'}

@@ -8,6 +8,7 @@ import { z } from 'zod';
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
+  remember: z.boolean().default(false).optional(),
 });
 
 export async function login(data: unknown) {
@@ -19,10 +20,10 @@ export async function login(data: unknown) {
     };
   }
 
-  const { email, password } = validatedFields.data;
+  const { email, password, remember } = validatedFields.data;
 
   try {
-    await authLogin(email, password);
+    await authLogin(email, password, remember);
   } catch (error) {
     if (error instanceof Error) {
       return {
