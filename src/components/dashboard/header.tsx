@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Menu, Search, Users, CalendarCheck, FilePlus, Rss, Shield, Activity } from 'lucide-react';
+import { Menu, Search, Users, CalendarCheck, FilePlus, Rss, Shield, Activity, Rows, LayoutGrid, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +22,15 @@ import { cn } from '@/lib/utils';
 import { NotificationPopover } from './notification-popover';
 import { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
+import AddTaskDialog from '@/app/dashboard/tasks/add-task-dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 
 const navItems = [
@@ -65,7 +74,7 @@ export function Header({ user }: { user: User }) {
 
   const visibleNavItems = navItems.filter(item => item.roles.includes(user.role));
 
-  const isLocalSearch = LOCAL_SEARCH_PATHS.some(p => pathname.startsWith(p));
+  const isLocalSearch = LOCAL_SEARCH_PATHS.some(p => pathname.startsWith(p) && !pathname.includes('/create') && !pathname.includes('/edit'));
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
@@ -99,12 +108,12 @@ export function Header({ user }: { user: User }) {
   }, [debouncedSearchValue, isLocalSearch, pathname, router, searchParams]);
 
   useEffect(() => {
-    // Reset search bar when navigating
-    const newSearchQuery = searchParams.get('q') || '';
+    // Reset search bar when navigating to a page that doesn't use local search
+    const newSearchQuery = isLocalSearch ? searchParams.get('q') || '' : '';
     if (searchValue !== newSearchQuery) {
         setSearchValue(newSearchQuery);
     }
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, isLocalSearch]);
 
 
   useEffect(() => {
@@ -211,8 +220,8 @@ export function Header({ user }: { user: User }) {
         </nav>
 
         <div className="w-full max-w-7xl px-4 py-3 md:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-y-2">
-            <div className="flex flex-col">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-y-4">
+            <div className="flex flex-col text-center md:text-left">
                 <h1 className="font-headline text-2xl font-bold md:text-3xl text-white">
                   {greeting.text}, {user?.name.split(' ')[0]}{greeting.punctuation}
                 </h1>
@@ -225,7 +234,7 @@ export function Header({ user }: { user: User }) {
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                         type="search"
-                        placeholder={isLocalSearch ? "Search this page..." : "Search anything..."}
+                        placeholder={isLocalSearch ? "Search this page..." : "Global search..."}
                         value={searchValue}
                         onChange={handleSearchChange}
                         className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
