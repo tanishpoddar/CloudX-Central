@@ -12,6 +12,7 @@ const userSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
   username: z.string().min(1, 'Username is required'),
+  regNo: z.string().optional().nullable(),
   password: z.string().min(1, 'Password is required'),
   role: z.enum(['Co-founder', 'Secretary', 'Chair of Directors', 'Lead', 'Member']),
   avatar: z.string().url().or(z.literal('')).optional().nullable(),
@@ -53,6 +54,7 @@ export async function updateUser(userData: User) {
   // Ensure nullable fields are correctly set to null if empty
   const processedData = {
       ...dataToUpdate,
+      regNo: dataToUpdate.regNo || null,
       phone: dataToUpdate.phone || null,
       birthday: dataToUpdate.birthday || null,
       linkedin: dataToUpdate.linkedin || null,

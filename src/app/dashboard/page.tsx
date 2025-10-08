@@ -9,6 +9,8 @@ import {
   Users,
   XCircle,
   Rss,
+  Cake,
+  Bell,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -33,12 +35,80 @@ import { TaskChart } from './task-chart';
 import { getAllTasks, getAllUsers, getAllLogs, getAnnouncements } from '@/lib/data';
 import type { Task, User, Log } from '@/types';
 import { getSubordinates } from '@/lib/hierarchy';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
+import { adminDb } from '@/lib/firebase-admin';
+
+async function checkAndSendBirthdayNotifications() {
+    if (!adminDb) return;
+
+    const today = new Date();
+    // IST is UTC+5:30
+    const istOffset = 330 * 60 * 1000;
+    const istDate = new Date(today.getTime() + istOffset);
+    
+    const todayMonth = istDate.getUTCMonth();
+    const todayDay = istDate.getUTCDate();
+    const todayYear = istDate.getUTCFullYear();
+    
+    const todayDateString = `${todayYear}-${todayMonth + 1}-${todayDay}`;
+
+    const configRef = adminDb.collection('appConfig').doc('dailyChecks');
+    const configDoc = await configRef.get();
+    const lastBirthdayCheck = configDoc.data()?.lastBirthdayCheck;
+
+    if (lastBirthdayCheck === todayDateString) {
+        return; // Already checked today
+    }
+
+    const allUsers = await getAllUsers();
+    const birthdayUsers = allUsers.filter(user => {
+        if (!user.birthday) return false;
+        try {
+            // Birthdays are stored as YYYY-MM-DD
+            const [year, month, day] = user.birthday.split('-').map(Number);
+            return month - 1 === todayMonth && day === todayDay;
+        } catch (e) {
+            return false; // Invalid date format
+        }
+    });
+
+    if (birthdayUsers.length > 0) {
+        const batch = adminDb.batch();
+        const notificationsCollection = adminDb.collection('notifications');
+
+        for (const birthdayUser of birthdayUsers) {
+            const message = `It's <strong>${birthdayUser.name}'s</strong> birthday today! Wish them well. 🎂`;
+            const link = `/dashboard/users/${birthdayUser.id}`;
+
+            // Send notification to every other user
+            for (const recipient of allUsers) {
+                if (recipient.id === birthdayUser.id) continue; // Don't notify the person whose birthday it is
+
+                const notifRef = notificationsCollection.doc();
+                 batch.set(notifRef, {
+                    userId: recipient.id,
+                    actorId: birthdayUser.id, // The "actor" is the person whose birthday it is
+                    type: 'ANNOUNCEMENT_NEW', // Using a generic type for now
+                    message,
+                    link,
+                    isRead: false,
+                    createdAt: new Date().toISOString(),
+                });
+            }
+        }
+        await batch.commit();
+    }
+
+    await configRef.set({ lastBirthdayCheck: todayDateString }, { merge: true });
+}
+
 
 export default async function Dashboard() {
   const user = await getCurrentUser();
 
   if (!user) return null;
+
+  await checkAndSendBirthdayNotifications();
 
   const [users, tasks, allLogs, announcements] = await Promise.all([
     getAllUsers(),

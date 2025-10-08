@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -9,6 +10,7 @@ const profileSchema = z
   .object({
     username: z.string().min(1, 'Username is required.'),
     password: z.string().optional(),
+    regNo: z.string().optional().nullable(),
     avatar: z.string().url('Must be a valid URL.').or(z.literal('')),
     phone: z.string().min(1, 'Phone number is required.'),
     birthday: z.string().min(1, 'Birthday is required.'),
@@ -37,6 +39,7 @@ export async function updateMyProfile(formData: FormData) {
       avatar: validatedFields.data.avatar || null,
       linkedin: validatedFields.data.linkedin || null,
       github: validatedFields.data.github || null,
+      regNo: validatedFields.data.regNo || null,
   };
 
   const password = formData.get('password') as string;

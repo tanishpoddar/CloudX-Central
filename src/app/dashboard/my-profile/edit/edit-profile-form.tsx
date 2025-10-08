@@ -25,6 +25,7 @@ import { useState } from 'react';
 const profileSchema = z
   .object({
     username: z.string().min(1, 'Username is required.'),
+    regNo: z.string().optional().nullable(),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
     avatar: z.string().url('Must be a valid URL.').or(z.literal('')),
@@ -63,6 +64,7 @@ export default function EditProfileForm({ user }: { user: User }) {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       username: user.username || '',
+      regNo: user.regNo || '',
       password: '',
       confirmPassword: '',
       avatar: user.avatar || '',
@@ -129,19 +131,34 @@ export default function EditProfileForm({ user }: { user: User }) {
         </div>
 
 
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input placeholder="Your username" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Username</FormLabel>
+                <FormControl>
+                  <Input placeholder="Your username" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="regNo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Registration No.</FormLabel>
+                <FormControl>
+                  <Input placeholder="Your Registration Number" {...field} value={field.value ?? ''}/>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         
         <div className="space-y-2">
             <p className="text-sm font-medium">Change Password</p>

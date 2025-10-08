@@ -106,7 +106,11 @@ export async function createAnnouncement(data: FormData) {
     // Domain-specific
     usersSnapshot.docs.forEach(doc => {
       const userTeam = doc.data().team;
+      const userSecondaryTeam = doc.data().secondaryTeam;
       if (userTeam && targetDomains.includes(userTeam)) {
+        targetUserIds.add(doc.id);
+      }
+      if (userSecondaryTeam && targetDomains.includes(userSecondaryTeam)) {
         targetUserIds.add(doc.id);
       }
     });

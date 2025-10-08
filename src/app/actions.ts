@@ -41,5 +41,5 @@ export async function login(data: unknown) {
 
 export async function logout() {
   await authLogout();
-  redirect('/');
+  redirect('/login');
 }

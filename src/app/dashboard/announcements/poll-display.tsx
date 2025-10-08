@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -9,15 +10,19 @@ import type { Poll, PollVote, User } from '@/types';
 import { submitPollVote } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+
 
 interface PollDisplayProps {
     announcementId: string;
     poll: Poll;
     votes: PollVote[];
     currentUser: User;
+    userMap: Map<string, User>;
 }
 
-export function PollDisplay({ announcementId, poll, votes, currentUser }: PollDisplayProps) {
+export function PollDisplay({ announcementId, poll, votes, currentUser, userMap }: PollDisplayProps) {
     const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -45,21 +50,43 @@ export function PollDisplay({ announcementId, poll, votes, currentUser }: PollDi
             {userVote ? (
                 // Show results
                 <div className="space-y-3">
-                    {poll.options.map(option => {
-                        const optionVotes = votes.filter(v => v.optionId === option.id).length;
-                        const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
-                        const isUserChoice = userVote.optionId === option.id;
+                    <TooltipProvider>
+                        {poll.options.map(option => {
+                            const optionVotes = votes.filter(v => v.optionId === option.id);
+                            const optionVoteCount = optionVotes.length;
+                            const percentage = totalVotes > 0 ? (optionVoteCount / totalVotes) * 100 : 0;
+                            const isUserChoice = userVote.optionId === option.id;
 
-                        return (
-                            <div key={option.id}>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <p className={cn("font-medium", isUserChoice && "text-primary")}>{option.text}</p>
-                                    <p className="text-muted-foreground">{Math.round(percentage)}% ({optionVotes})</p>
+                            return (
+                                <div key={option.id}>
+                                    <div className="flex justify-between text-sm mb-1">
+                                        <p className={cn("font-medium", isUserChoice && "text-primary")}>{option.text}</p>
+                                        <p className="text-muted-foreground">{Math.round(percentage)}% ({optionVoteCount})</p>
+                                    </div>
+                                    <Progress value={percentage} />
+                                     <div className="flex flex-wrap items-center gap-2 mt-2">
+                                        {optionVotes.map(vote => {
+                                            const voter = userMap.get(vote.userId);
+                                            if (!voter) return null;
+                                            return (
+                                                <Tooltip key={vote.userId}>
+                                                    <TooltipTrigger>
+                                                        <Avatar className="h-6 w-6">
+                                                            <AvatarImage src={voter.avatar ?? undefined} alt={voter.name} />
+                                                            <AvatarFallback>{voter.name.charAt(0)}</AvatarFallback>
+                                                        </Avatar>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{voter.name}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )
+                                        })}
+                                    </div>
                                 </div>
-                                <Progress value={percentage} />
-                            </div>
-                        )
-                    })}
+                            )
+                        })}
+                    </TooltipProvider>
                 </div>
             ) : (
                 // Show voting options

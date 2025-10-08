@@ -21,6 +21,7 @@ export interface User {
   id: string;
   name: string;
   username: string;
+  regNo?: string | null;
   password?: string;
   email: string;
   avatar: string | null;

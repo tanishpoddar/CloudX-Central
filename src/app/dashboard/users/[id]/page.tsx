@@ -21,6 +21,7 @@ import {
   Phone,
   User as UserIcon,
   Users,
+  Fingerprint
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -119,6 +120,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
             <InfoRow icon={<Users size={18} />} label="Group Name" value={`${user.team} ${user.subTeam ? `(${user.subTeam})` : ''}`} />
             <InfoRow icon={<Mail size={18} />} label="Email" value={user.email} isLink href={`mailto:${user.email}`} />
             <InfoRow icon={<Phone size={18} />} label="Phone Number" value={user.phone} />
+            <InfoRow icon={<Fingerprint size={18} />} label="Registration No." value={user.regNo} />
             <InfoRow icon={<Cake size={18} />} label="Birthday" value={formattedBirthday} />
             <InfoRow icon={<Linkedin size={18} />} label="LinkedIn" value={user.linkedin} isLink />
             <InfoRow icon={<Github size={18} />} label="GitHub" value={user.github} isLink />

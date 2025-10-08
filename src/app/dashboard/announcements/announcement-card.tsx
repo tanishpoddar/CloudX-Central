@@ -68,6 +68,7 @@ export function AnnouncementCard({ announcement, currentUser, userMap }: Announc
                         poll={announcement.poll}
                         votes={announcement.pollVotes}
                         currentUser={currentUser}
+                        userMap={userMap}
                     />
                 )}
                 
@@ -77,6 +78,7 @@ export function AnnouncementCard({ announcement, currentUser, userMap }: Announc
                     announcementId={announcement.id}
                     reactions={announcement.reactions}
                     currentUser={currentUser}
+                    userMap={userMap}
                 />
                 <Separator className="w-full" />
                 <CommentSection 

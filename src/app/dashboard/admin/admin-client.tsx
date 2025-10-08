@@ -45,7 +45,7 @@ const subTeams: (SubTeam | null | string)[] = [
     'digital-design', 'media', null
 ];
 const NONE_VALUE = "__NONE__";
-const userTemplateKeys: (keyof User)[] = ['id', 'name', 'username', 'email', 'password', 'avatar', 'role', 'team', 'subTeam', 'phone', 'birthday', 'linkedin', 'github'];
+const userTemplateKeys: (keyof User)[] = ['id', 'name', 'username', 'email', 'regNo', 'password', 'avatar', 'role', 'team', 'subTeam', 'phone', 'birthday', 'linkedin', 'github'];
 
 const sortUsersById = (users: User[]) => {
   return [...users].sort((a, b) => {
@@ -104,6 +104,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
       name: '',
       username: '',
       email: '',
+      regNo: '',
       password: '',
       avatar: null,
       role: 'Member',
@@ -282,6 +283,7 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
                 <TableHead>Name</TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Reg. No.</TableHead>
                 <TableHead>Password</TableHead>
                 <TableHead>Avatar URL</TableHead>
                 <TableHead>Role</TableHead>
@@ -321,6 +323,14 @@ export default function AdminClient({ users: initialUsers }: { users: User[] }) 
                       onChange={e => handleInputChange(user.id, 'email', e.target.value)}
                       className="w-48"
                        placeholder="Email Address"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={user.regNo || ''}
+                      onChange={e => handleInputChange(user.id, 'regNo', e.target.value)}
+                      className="w-40"
+                       placeholder="Registration Number"
                     />
                   </TableCell>
                   <TableCell>
