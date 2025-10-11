@@ -22,13 +22,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { resetPassword } from '../actions';
-import { useTransition, useState, Suspense } from 'react';
+import { useTransition, useState, Suspense, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getAuth, confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters.'),
@@ -47,8 +48,22 @@ function ResetPasswordComponent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const oobCode = searchParams.get('oobCode');
+
+  useEffect(() => {
+    if (!oobCode) {
+      setError("Invalid or missing password reset code in the URL.");
+      return;
+    }
+    const auth = getAuth(app);
+    verifyPasswordResetCode(auth, oobCode).catch((error) => {
+      setError("Your password reset link is invalid or has expired. Please request a new one.");
+      console.error("Verification error:", error);
+    });
+  }, [oobCode]);
+
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -60,24 +75,32 @@ function ResetPasswordComponent() {
 
   const onSubmit = (data: ResetPasswordFormValues) => {
     setError(null);
-    if (!token) {
+    if (!oobCode) {
         setError('No reset token found. Please request a new link.');
         return;
     }
     startTransition(async () => {
-      const result = await resetPassword({ token, password: data.password });
-      if (result?.error) {
-        setError(result.error);
+      try {
+        const auth = getAuth(app);
+        await confirmPasswordReset(auth, oobCode, data.password);
+        toast({
+          title: 'Password Reset Successful',
+          description: 'You can now log in with your new password.',
+        });
+        router.push('/login');
+      } catch (error: any) {
+        console.error("Reset failed", error);
+        setError(error.message || 'Failed to reset password. The link may be expired.');
         toast({
           variant: 'destructive',
           title: 'Reset Failed',
-          description: result.error,
+          description: error.message || 'The link may be expired or invalid.',
         });
       }
     });
   };
 
-  if (!token) {
+  if (!oobCode) {
       return (
           <Card className="w-full max-w-sm glass">
             <CardHeader>
@@ -87,7 +110,7 @@ function ResetPasswordComponent() {
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>The password reset link is missing or invalid. Please request a new one.</AlertDescription>
+                    <AlertDescription>{error || "The password reset link is missing or invalid. Please request a new one."}</AlertDescription>
                 </Alert>
             </CardContent>
              <CardFooter>
