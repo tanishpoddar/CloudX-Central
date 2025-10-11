@@ -4,7 +4,7 @@
 import { login as authLogin, logout as authLogout } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 
@@ -130,8 +130,8 @@ export async function resetPassword(data: unknown) {
 
    const { token, password } = validatedFields.data;
 
-  if (!adminDb) {
-    return { error: 'The database is not available. Please try again later.' };
+  if (!adminDb || !adminAuth) {
+    return { error: 'The authentication service is not available. Please try again later.' };
   }
 
   const tokensRef = adminDb.collection('passwordResetTokens');
@@ -145,9 +145,20 @@ export async function resetPassword(data: unknown) {
   const tokenDoc = tokenSnapshot.docs[0];
   const userId = tokenDoc.data().userId;
 
-  await adminDb.collection('users').doc(userId).update({
-    password: password, // In a real app, this should be securely hashed!
-  });
+  try {
+    // This is the correct way to update a user's password
+    await adminAuth.updateUser(userId, {
+      password: password,
+    });
+    // Also update the password in Firestore if you are storing it there
+    // (though it's better practice not to store the password directly)
+    await adminDb.collection('users').doc(userId).update({
+      password: password,
+    });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    return { error: 'Failed to update password. Please try again.' };
+  }
 
   await tokenDoc.ref.delete();
 
