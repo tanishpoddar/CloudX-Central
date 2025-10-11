@@ -130,5 +130,11 @@ export interface AnnouncementComment {
     createdAt: string;
 }
 
+export interface PasswordResetToken {
+    id: string; // email
+    token: string;
+    expires: Date;
+    userId: string;
+}
 
     

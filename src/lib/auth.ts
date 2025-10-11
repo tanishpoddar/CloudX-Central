@@ -51,14 +51,14 @@ export async function login(email: string, password: string, remember: boolean =
     const querySnapshot = await q.get();
 
     if (querySnapshot.empty) {
-        throw new Error("Invalid email or password.");
+        throw new Error("Invalid email address.");
     }
 
     const userDoc = querySnapshot.docs[0];
     const user = { id: userDoc.id, ...userDoc.data() } as User;
 
     if (user.password !== password) {
-        throw new Error("Invalid email or password.");
+        throw new Error("Incorrect password.");
     }
     
     const sessionData = { 

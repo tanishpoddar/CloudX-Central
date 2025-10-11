@@ -282,7 +282,7 @@ export default async function TaskDetailsPage({ params }: TaskDetailsPageProps) 
                         key={link}
                         href={link}
                         target="_blank"
-                        className="text-sm text-primary hover:underline"
+                        className="text-sm text-primary hover:underline break-all"
                       >
                         {link}
                       </Link>

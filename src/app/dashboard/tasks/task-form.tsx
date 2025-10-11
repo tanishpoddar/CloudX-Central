@@ -125,7 +125,8 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
         } else if (currentUser.role === 'Chair of Directors') {
             availableUsers = allUsers.filter(u => u.team === currentUser.team && (u.role === 'Lead' || u.role === 'Member'));
         } else if (currentUser.role === 'Lead') {
-            availableUsers = allUsers.filter(u => u.subTeam === currentUser.subTeam && u.role === 'Member');
+            // A lead can assign to any member now
+            availableUsers = allUsers.filter(u => u.role === 'Member');
         }
 
         if ((selectedTeams.length > 0 || selectedRoles.length > 0) && (currentUser.role === 'Co-founder' || currentUser.role === 'Secretary' || currentUser.role === 'Chair of Directors')) {
@@ -219,7 +220,7 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
   const submitButtonText = formType === 'create' || formType === 'create-bulk' ? 'Create Tasks' : 'Save Changes';
 
   return (
-     <Card className="max-w-3xl mx-auto">
+     <Card className="mx-auto max-w-3xl glass">
         <CardHeader>
           <CardTitle>{getCardTitle()}</CardTitle>
           <CardDescription>
@@ -324,9 +325,9 @@ export default function TaskForm({ formType, task, currentUser, allUsers }: Task
                             )}
                         />
                          {(currentUser.role === 'Co-founder' || currentUser.role === 'Secretary' || currentUser.role === 'Chair of Directors') && (
-                            <div className="p-4 border rounded-lg space-y-4">
+                            <div className="space-y-4 rounded-lg border p-4">
                                <FormLabel>Filter Assignees</FormLabel>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     {(currentUser.role === 'Co-founder' || currentUser.role === 'Secretary') && (
                                         <div className="space-y-2">
                                             <p className="text-sm font-medium">By Team</p>
