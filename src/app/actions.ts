@@ -67,16 +67,11 @@ export async function sendPasswordResetLink(data: unknown) {
   try {
     // This is the correct Firebase Admin SDK method to generate a reset link
     const link = await adminAuth.generatePasswordResetLink(email, {
-      url: `${process.env.NEXT_PUBLIC_APP_URL}/login`, // Redirect back to login after reset
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`, // Redirect to the reset password page
     });
 
     // Firebase handles sending the email via its own servers when you use this method.
     // We just need to make sure the email template in Firebase Console is set up.
-    // For now, let's log the link for debugging.
-    console.log("Generated password reset link:", link);
-    
-    // In a real scenario, you'd trigger an email with this link.
-    // For this app, we'll assume Firebase's email template is used.
     
     return { success: 'If an account exists for this email, a password reset link has been sent.' };
   } catch (error: any) {
